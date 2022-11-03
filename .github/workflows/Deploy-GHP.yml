@@ -1,7 +1,5 @@
 name: gh-pages
 
-on: [push]
-
 jobs:
   build:
 
