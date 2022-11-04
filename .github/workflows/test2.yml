@@ -5,9 +5,6 @@ on:
     branches: [ test2 ]
 jobs:
   deploy-to-github-pages:
-    # add .nojekyll file to tell GitHub pages to not treat this as a Jekyll project. (Allow files and folders starting with an underscore)
-    - name: Add .nojekyll file
-      run: touch release/wwwroot/.nojekyll
     # use ubuntu-latest image to run steps on
     runs-on: ubuntu-latest
     steps:
@@ -18,7 +15,10 @@ jobs:
       uses: actions/setup-dotnet@v1
     # publishes Blazor project to the release-folder
     - name: Publish .NET Core Project
-      run: dotnet publish MichalMalenda.github.io.csproj -c Release -o release --nologo
+      run: dotnet publish MichalMalenda.github.io.csproj -c Release -o release --nologo    
+    # add .nojekyll file to tell GitHub pages to not treat this as a Jekyll project. (Allow files and folders starting with an underscore)
+    - name: Add .nojekyll file
+      run: touch release/wwwroot/.nojekyll
     - name: Commit wwwroot to GitHub Pages
       uses: JamesIves/github-pages-deploy-action@3.7.1
       with:
