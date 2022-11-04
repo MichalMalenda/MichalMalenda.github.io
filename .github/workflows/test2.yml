@@ -5,6 +5,9 @@ on:
     branches: [ test2 ]
 jobs:
   deploy-to-github-pages:
+    # add .nojekyll file to tell GitHub pages to not treat this as a Jekyll project. (Allow files and folders starting with an underscore)
+    - name: Add .nojekyll file
+      run: touch release/wwwroot/.nojekyll
     # use ubuntu-latest image to run steps on
     runs-on: ubuntu-latest
     steps:
