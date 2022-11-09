@@ -10,7 +10,8 @@
 }
 
 .sidebar[b-2nt8angtsa] {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    /*background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);*/
+    background-color: #212121;
 }
 
 .top-row[b-2nt8angtsa] {
@@ -83,7 +84,7 @@
     font-size: 1.1rem;
 }
 
-.oi[b-780e80izlp] {
+.bi[b-780e80izlp] {
     width: 2rem;
     font-size: 1.1rem;
     vertical-align: text-top;
