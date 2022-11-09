@@ -8081,13 +8081,13 @@ textarea.form-control-lg {
     }
 
 .alert-secondary {
-    color: #41464b;
-    background-color: #e2e3e5;
-    border-color: #d3d6d8
+    color: #303000;
+    background-color: #d2d2d2;
+    border-color: #d2d2d2
 }
 
     .alert-secondary .alert-link {
-        color: #34383c
+        color: #ffe6e6
     }
 
 .alert-success {
