@@ -1,0 +1,106 @@
+@page "/calculator"
+<title>Calculator</title>
+<h1>Calculator</h1>
+<div class="display">
+    <p id="result">@result</p>
+    <div class="first-row">
+        <button @onclick="() => Clear()" id="r1-1">C</button>
+        <button @onclick="() => Mod()" id="r1-3">%</button>
+        <button @onclick="() => Divide()" id="r1-4">/</button>
+    </div>
+    <div class="second-row">
+        <button @onclick="() => Set(7)" id="r2-1">7</button>
+        <button @onclick="() => Set(8)" id="r2-2">8</button>
+        <button @onclick="() => Set(9)" id="r2-3">9</button>
+        <button @onclick="() => Multiply()" id="r2-4">x</button>
+    </div>
+    <div class="third-row">
+        <button @onclick="() => Set(4)" id="r3-1">4</button>
+        <button @onclick="() => Set(5)" id="r3-2">5</button>
+        <button @onclick="() => Set(6)" id="r3-3">6</button>
+        <button @onclick="() => Subtract()" id="r3-4">-</button>
+    </div>
+    <div class="fourth-row">
+        <button @onclick="() => Set(1)" id="r4-1">1</button>
+        <button @onclick="() => Set(2)" id="r4-2">2</button>
+        <button @onclick="() => Set(3)" id="r4-3">3</button>
+        <button @onclick="() => Add()" id="r4-4">+</button>
+    </div>
+    <div class="fifth-row">
+        <button @onclick="() => Set(0)" id="r5-1">0</button>
+        <button @onclick="() => Dot()" id="r5-2">.</button>
+        <button @onclick="() => Equal()" id="r5-3">=</button>
+    </div>
+</div>
+
+@code {
+    private string result, action;
+    private int a, b = 0;
+    private void Clear(){
+        result = "0";
+        a = 0;
+        b = 0;
+    }
+
+    private void Set(int number){
+        if (result == "0"){
+            result = number.ToString();
+        }else{
+            result = result+number.ToString();
+        }
+    }
+
+    private void Dot(){
+        result = result + ".";
+    }
+
+    private void Add(){
+        a = int.Parse(result);
+        action = "add";
+        result = "0";
+    }
+    private void Subtract(){
+        a = int.Parse(result);
+        action = "subtract";
+        result = "0";
+    }
+    private void Multiply(){
+        a = int.Parse(result);
+        action = "multiply";
+        result = "0";
+    }
+    private void Divide(){
+        a = int.Parse(result);
+        action = "divide";
+        result = "0";
+    }
+    private void Mod(){
+        a = int.Parse(result);
+        action = "mod";
+        result = "0";
+    }
+    private void Equal(){
+        if (action == string.Empty) {
+        }else{
+            b = int.Parse(result);
+            switch (action)
+            {
+                case "add":
+                    result = (a + b).ToString();
+                    break;
+                case "subtract":
+                    result = (a - b).ToString();
+                    break;
+                case "multiply":
+                    result = (a * b).ToString();
+                    break;
+                case "divide":
+                    result = (a / b).ToString();
+                    break;
+                case "mod":
+                    result = (a % b).ToString();
+                    break;
+            }
+        }
+    }
+}
