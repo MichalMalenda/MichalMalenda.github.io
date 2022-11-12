@@ -1,11 +1,20 @@
-@page "/calculator"
+﻿@page "/calculator"
 <title>Calculator</title>
 <h1>Calculator</h1>
 <div class="display">
-    <p id="result">@result</p>
-    <div class="first-row">
-        <button @onclick="() => Clear()" id="r1-1">C</button>
+    <div class="result">
+        <p id="result">@result</p>
+    </div>
+    <div class="zero-row">
         <button @onclick="() => Mod()" id="r1-3">%</button>
+        <button @onclick="() => Clear()" id="r1-1">CE</button>
+        <button @onclick="() => Clear()" id="r1-1">C</button>
+        <button @onclick="() => Back()" id="r1-4 "><span class="bi bi-backspace" aria-hidden="true"></span></button>
+    </div>
+    <div class="first-row">
+        <button @onclick="() => Under()" id="r1-1">1/x</button>
+        <button @onclick="() => Sup()" id="r1-3">x<sup>2</sup></button>
+        <button @onclick="() => Root()" id="r1-4">√x</button>
         <button @onclick="() => Divide()" id="r1-4">/</button>
     </div>
     <div class="second-row">
@@ -27,22 +36,24 @@
         <button @onclick="() => Add()" id="r4-4">+</button>
     </div>
     <div class="fifth-row">
-        <button @onclick="() => Set(0)" id="r5-1">0</button>
-        <button @onclick="() => Dot()" id="r5-2">.</button>
-        <button @onclick="() => Equal()" id="r5-3">=</button>
+        <button @onclick="() => Swap()" id="r5-1">+/-</button>
+        <button @onclick="() => Set(0)" id="r5-2">0</button>
+        <button @onclick="() => Dot()" id="r5-3">.</button>
+        <button @onclick="() => Equal()" id="r5-4">=</button>
     </div>
 </div>
 
 @code {
-    private string result, action;
-    private int a, b = 0;
+    private string result = "0";
+    private string action;
+    private double a, b = 0;
     private void Clear(){
         result = "0";
         a = 0;
         b = 0;
     }
 
-    private void Set(int number){
+    private void Set(double number){
         if (result == "0"){
             result = number.ToString();
         }else{
@@ -55,34 +66,61 @@
     }
 
     private void Add(){
-        a = int.Parse(result);
+        a = double.Parse(result);
         action = "add";
         result = "0";
     }
     private void Subtract(){
-        a = int.Parse(result);
+        a = double.Parse(result);
         action = "subtract";
         result = "0";
     }
     private void Multiply(){
-        a = int.Parse(result);
+        a = double.Parse(result);
         action = "multiply";
         result = "0";
     }
     private void Divide(){
-        a = int.Parse(result);
+        a = double.Parse(result);
         action = "divide";
         result = "0";
     }
     private void Mod(){
-        a = int.Parse(result);
+        a = double.Parse(result);
         action = "mod";
         result = "0";
+    }
+    private void Root(){
+        result = (Math.Sqrt(double.Parse(result))).ToString();
+    }
+    private void Sup(){
+        result = (Math.Pow(double.Parse(result),2)).ToString();
+    }
+    private void Under(){
+        if (result == "0"){
+            result = "0";
+        }else{
+            result = (1 / double.Parse(result)).ToString();
+        }
+    }
+    private void Swap(){
+        if (double.Parse(result) > 0){
+            result = "-"+result;
+        }else{
+            result = result.Replace("-","");
+        }
+    }
+    private void Back(){
+        if (result == "0"){
+            result = "0";
+        }else{
+            result = result.Remove(result.Length - 1, 1);
+        }
     }
     private void Equal(){
         if (action == string.Empty) {
         }else{
-            b = int.Parse(result);
+            b = double.Parse(result);
             switch (action)
             {
                 case "add":
