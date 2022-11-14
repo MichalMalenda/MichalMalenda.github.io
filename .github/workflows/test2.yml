@@ -17,14 +17,14 @@ jobs:
     - name: Publish .NET Core Project
       run: dotnet publish MichalMalenda.github.io.csproj -c Release -o release --nologo    
     # add .nojekyll file to tell GitHub pages to not treat this as a Jekyll project. (Allow files and folders starting with an underscore)
-    - name: Add .nojekyll file
-      run: |
-        touch release/wwwroot/CNAME
-        echo "mmalenda.com"
-      #run: touch release/wwwroot/.nojekyll
     - name: Commit wwwroot to GitHub Pages
       uses: JamesIves/github-pages-deploy-action@3.7.1
       with:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         BRANCH: gh-pages
         FOLDER: release/wwwroot
+    - name: Add CNAME file
+      run: |
+        touch release/wwwroot/CNAME
+        echo "mmalenda.com"
+      #run: touch release/wwwroot/.nojekyll
