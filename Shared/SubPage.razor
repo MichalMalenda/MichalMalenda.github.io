@@ -1,0 +1,15 @@
+﻿<li class="nav-item px-4 navbar-nav flex-column">
+    <NavLink class="nav-link" href="@Page">
+        <span class="bi bi-@Icon" aria-hidden="true"></span> @Name
+    </NavLink>
+</li>
+
+@code {
+    // Demonstrates how a parent component can supply parameters
+    [Parameter]
+    public string Name { get; set; }
+    [Parameter]
+    public string Icon { get; set; }
+    [Parameter]
+    public string Page { get; set; }
+}

@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <Folder Include="wwwroot\css\bootstrap-icons\fonts\" />
+    <None Update="Pages/*.razor.css" CssScope="inherit-scope" />
   </ItemGroup>
 
 </Project>
