@@ -52,7 +52,7 @@
     @code {
         string GenderRadio = "";
         string err_age, err_wgh, err_hgt, err_bdf, label_age,label_wgh,label_hgt,label_bdf,err_gender, label_gender = "";
-        string age="", weight="", height="", fat="";
+        string age="", weight="", height="", fat="", weight_lbm="";
         double activity = 1.2;
         bool lbm = true;
         double result;
@@ -147,9 +147,15 @@
                 else
                 {
                     label_bdf = "error";
-                    err_bdf = " " + args.Value.ToString() + " is not valid body fat";
+                    err_bdf = " " + args.Value.ToString() + " is not a valid number";
                     fat = "";
                 }
+            }
+            else if (args.Value.ToString() == "")
+            {
+                label_bdf = "error";
+                err_bdf = " " + args.Value.ToString() + " body fat won't be included";
+                fat = "";
             }
             else
             {
@@ -160,22 +166,25 @@
         }
         void activity_select(ChangeEventArgs args)
         {
-            switch (args.Value)
+            switch ((args.Value).ToString())
             {
-                case "var1":
+                case "val1":
                     activity = 1.2;
                     break;
-                case "var2":
+                case "val2":
                     activity = 1.375;
                     break;
-                case "var3":
+                case "val3":
                     activity = 1.55;
                     break;
-                case "var4":
+                case "val4":
                     activity = 1.725;
                     break;
-                case "var5":
+                case "val5":
                     activity = 1.9;
+                    break;
+                default:
+                    activity = 0;
                     break;
             }
         }
@@ -190,18 +199,22 @@
             {
                 if (lbm == true)
                 {
-                    weight = (double.Parse(weight) - double.Parse(weight) * double.Parse(fat) / 100).ToString();
+                    weight_lbm = (double.Parse(weight) - double.Parse(weight) * double.Parse(fat) / 100).ToString();
                     lbm = false;
+                }
+                else 
+                {
+                    weight_lbm = (double.Parse(weight)).ToString();
                 }
                 //Women BMR = 655 + (9.6 X weight in kg) +(1.8 x height in cm) – (4.7 x age in yrs)
                 //Men BMR = 66 + (13.7 X weight in kg) +(5 x height in cm) – (6.8 x age in yrs)
                 switch (GenderRadio)
                 {
                     case "Male":
-                        result = Math.Round((66 + (13.7 * double.Parse(weight)) + (5 * double.Parse(height) - (6.8 * double.Parse(age)))) * activity);
+                        result = Math.Round((66 + (13.7 * double.Parse(weight_lbm)) + (5 * double.Parse(height) - (6.8 * double.Parse(age)))) * activity);
                         break;
                     case "Female":
-                        result = Math.Round((655 + (9.6 * double.Parse(weight)) + (1.8 * double.Parse(height) - (4.7 * double.Parse(age)))) * activity);
+                        result = Math.Round((655 + (9.6 * double.Parse(weight_lbm)) + (1.8 * double.Parse(height) - (4.7 * double.Parse(age)))) * activity);
                         break;
                 }
             }
