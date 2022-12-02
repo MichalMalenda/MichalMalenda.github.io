@@ -269,7 +269,7 @@
       "url": "_framework\/System.Text.Json.dll"
     },
     {
-      "hash": "sha256-JZgxAfafnqEpM72WdqToHytrA5dMgiTX8AUcQdkehpQ=",
+      "hash": "sha256-2J2QKPhcB7IZx+dRYabNg8tUJNmdHK2K3lwlfwQaGik=",
       "url": "_framework\/MichalMalenda.github.io.dll"
     },
     {
@@ -425,7 +425,7 @@
       "url": "_framework\/System.Private.CoreLib.dll"
     },
     {
-      "hash": "sha256-YlCmsfyfiRsuOKAYv8FTYfi6P55ePNGxBtpA2qSkQo8=",
+      "hash": "sha256-QmX89w8jRPgkLRmlvjV3S4dzee+56odGV598jwzzuMU=",
       "url": "_framework\/blazor.boot.json"
     },
     {
@@ -433,5 +433,5 @@
       "url": "_framework\/blazor.webassembly.js"
     }
   ],
-  "version": "RbnDTLn0"
+  "version": "4TRHZLwV"
 };
