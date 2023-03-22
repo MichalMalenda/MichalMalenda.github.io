@@ -1,6 +1,9 @@
 ﻿@page "/tdee"
 <title>TDEE Calculator</title>
-<h1>Calculator</h1>
+<h1>TDEE Calculator</h1>
+<div class="left_display"
+    <p>Tdee, or Total Daily Energy Expenditure, is a measure of how many calories a person needs to consume in order to maintain their current weight. It is calculated by taking into account a person’s basal metabolic rate (BMR), activity level, and any additional energy expenditure from physical activity.</p>
+    </div>
 <div class="display">
     <div class="result">
         <p id="result">@result</p>
@@ -17,65 +20,62 @@
     </div>
     <div class="first-row">
         <div class="text_box_label">Age </div>
-            <input type="text" name="age" class="text_box_in" @onchange="validate_age" placeholder="yr"><label id="@label_age">@err_age </label>
-        </div>
+        <input type="text" name="age" class="text_box_in" @onchange="validate_age" placeholder="yr"><label id="@label_age">@err_age </label>
+    </div>
     <div class="second-row">
         <div class="text_box_label">Weight </div>
-            <input type="text" name="weight" class="text_box_in" @onchange="validate_weight" placeholder="kg"><label id="@label_wgh">@err_wgh </label>
-        </div>
+        <input type="text" name="weight" class="text_box_in" @onchange="validate_weight" placeholder="kg"><label id="@label_wgh">@err_wgh </label>
+    </div>
     <div class="third-row">
         <div class="text_box_label">Height </div>
-            <input type="text" name="height" class="text_box_in" @onchange="validate_height" placeholder="cm"><label id="@label_hgt">@err_hgt </label>
-        </div>
+        <input type="text" name="height" class="text_box_in" @onchange="validate_height" placeholder="cm"><label id="@label_hgt">@err_hgt </label>
+    </div>
     <div class="fourth-row">
         <div class="text_box_label">Activity </div>
-            <select name="activity" id="activity" @onchange="activity_select">
-                <option value="val1">Sedentary (office job)</option>
-                <option value="val2">Light Exercise (1-2 days/week)</option>
-                <option value="val3">Moderate Exercise (3-5 days/week)</option>
-                <option value="val4">Heavy Exercise (6-7 days/week)</option>
-                <option value="val5">Athlete (2x per day)</option>
-            </select>
-        </div>
+        <select name="activity" id="activity" @onchange="activity_select">
+            <option value="val1">Sedentary (office job)</option>
+            <option value="val2">Light Exercise (1-2 days/week)</option>
+            <option value="val3">Moderate Exercise (3-5 days/week)</option>
+            <option value="val4">Heavy Exercise (6-7 days/week)</option>
+            <option value="val5">Athlete (2x per day)</option>
+        </select>
+    </div>
     <div class="fifth-row">
         <div class="text_box_label">Body fat % </div>
-            <input type="text" name="body_fat" class="text_box_in" @onchange="validate_fat" placeholder="%"><label id="@label_bdf">@err_bdf </label>
+        <input type="text" name="body_fat" class="text_box_in" @onchange="validate_fat" placeholder="%"><label id="@label_bdf">@err_bdf </label>
         <br>
         <div class="text_box_label">(optional)</div>
-        </div>
+    </div>
     <div class="sixth-row">
         <div class="text_box_label"></div>
         <button @onclick="() => Submit()">Submit</button>
-        </div>
+    </div>
+</div>
+<div class="right_display"
     </div>
 
-    @code {
-        string GenderRadio = "";
-        string err_age, err_wgh, err_hgt, err_bdf, label_age,label_wgh,label_hgt,label_bdf,err_gender, label_gender = "";
-        string age="", weight="", height="", fat="", weight_lbm="";
-        double activity = 1.2;
-        bool lbm = true;
-        double result;
-        void gender_select(ChangeEventArgs args)
+@code {
+    string GenderRadio = "";
+    string err_age, err_wgh, err_hgt, err_bdf, label_age, label_wgh, label_hgt, label_bdf, err_gender, label_gender = "";
+    string age = "", weight = "", height = "", fat = "", weight_lbm = "";
+    double activity = 1.2;
+    bool lbm = true;
+    double result;
+    void gender_select(ChangeEventArgs args)
+    {
+        label_gender = "noterror";
+        err_gender = " ✔";
+        GenderRadio = args.Value.ToString();
+    }
+    void validate_age(ChangeEventArgs args)
+    {
+        if (int.TryParse(args.Value.ToString(), out int value))
         {
-            label_gender = "noterror";
-            err_gender = " ✔";
-            GenderRadio = args.Value.ToString();
-        }
-        void validate_age(ChangeEventArgs args) {
-            if (int.TryParse(args.Value.ToString(), out int value)) {
-                if (int.Parse(args.Value.ToString()) < 200 && int.Parse(args.Value.ToString()) > 0)
-                {
-                    label_age = "noterror";
-                    err_age = " ✔";
-                    age = args.Value.ToString();
-                }
-                else
-                {
-                    label_age = "error";
-                    err_age = " " + args.Value.ToString() + " is not a valid age";
-                    age = "";
-                }
+            if (int.Parse(args.Value.ToString()) < 200 && int.Parse(args.Value.ToString()) > 0)
+            {
+                label_age = "noterror";
+                err_age = " ✔";
+                age = args.Value.ToString();
             }
             else
             {
@@ -84,23 +84,23 @@
                 age = "";
             }
         }
-        void validate_weight(ChangeEventArgs args)
+        else
         {
-            if (int.TryParse(args.Value.ToString(), out int value))
+            label_age = "error";
+            err_age = " " + args.Value.ToString() + " is not a valid age";
+            age = "";
+        }
+    }
+    void validate_weight(ChangeEventArgs args)
+    {
+        if (int.TryParse(args.Value.ToString(), out int value))
+        {
+            if (int.Parse(args.Value.ToString()) < 1000 && int.Parse(args.Value.ToString()) > 5)
             {
-                if (int.Parse(args.Value.ToString()) < 1000 && int.Parse(args.Value.ToString()) > 5)
-                {
-                    label_wgh = "noterror";
-                    err_wgh = " ✔";
-                    weight = args.Value.ToString();
-                    lbm = true;
-                }
-                else
-                {
-                    label_wgh = "error";
-                    err_wgh = " " + args.Value.ToString() + " is not a valid weight";
-                    weight = "";
-                }
+                label_wgh = "noterror";
+                err_wgh = " ✔";
+                weight = args.Value.ToString();
+                lbm = true;
             }
             else
             {
@@ -109,22 +109,22 @@
                 weight = "";
             }
         }
-        void validate_height(ChangeEventArgs args)
+        else
         {
-            if (int.TryParse(args.Value.ToString(), out int value))
+            label_wgh = "error";
+            err_wgh = " " + args.Value.ToString() + " is not a valid weight";
+            weight = "";
+        }
+    }
+    void validate_height(ChangeEventArgs args)
+    {
+        if (int.TryParse(args.Value.ToString(), out int value))
+        {
+            if (int.Parse(args.Value.ToString()) < 1000 && int.Parse(args.Value.ToString()) > 10)
             {
-                if (int.Parse(args.Value.ToString()) < 1000 && int.Parse(args.Value.ToString()) > 10)
-                {
-                    label_hgt = "noterror";
-                    err_hgt = " ✔";
-                    height = args.Value.ToString();
-                }
-                else
-                {
-                    label_hgt = "error";
-                    err_hgt = " " + args.Value.ToString() + "is not a valid height";
-                    height = "";
-                }
+                label_hgt = "noterror";
+                err_hgt = " ✔";
+                height = args.Value.ToString();
             }
             else
             {
@@ -133,107 +133,115 @@
                 height = "";
             }
         }
-        void validate_fat(ChangeEventArgs args)
+        else
         {
-            if (int.TryParse(args.Value.ToString(), out int value))
+            label_hgt = "error";
+            err_hgt = " " + args.Value.ToString() + "is not a valid height";
+            height = "";
+        }
+    }
+    void validate_fat(ChangeEventArgs args)
+    {
+        if (int.TryParse(args.Value.ToString(), out int value))
+        {
+            if (int.Parse(args.Value.ToString()) < 90 && int.Parse(args.Value.ToString()) > 1)
             {
-                if (int.Parse(args.Value.ToString()) < 90 && int.Parse(args.Value.ToString()) > 1)
-                {
-                    label_bdf = "noterror";
-                    err_bdf = " ✔";
-                    fat = args.Value.ToString();
-                    lbm = true;
-                }
-                else
-                {
-                    label_bdf = "error";
-                    err_bdf = " " + args.Value.ToString() + " is not a valid number";
-                    fat = "";
-                }
-            }
-            else if (args.Value.ToString() == "")
-            {
-                label_bdf = "error";
-                err_bdf = " " + args.Value.ToString() + " body fat won't be included";
-                fat = "";
+                label_bdf = "noterror";
+                err_bdf = " ✔";
+                fat = args.Value.ToString();
+                lbm = true;
             }
             else
             {
                 label_bdf = "error";
-                err_bdf = " " + args.Value.ToString() + " is not valid body fat";
+                err_bdf = " " + args.Value.ToString() + " is not a valid number";
                 fat = "";
             }
         }
-        void activity_select(ChangeEventArgs args)
+        else if (args.Value.ToString() == "")
         {
-            switch ((args.Value).ToString())
-            {
-                case "val1":
-                    activity = 1.2;
-                    break;
-                case "val2":
-                    activity = 1.375;
-                    break;
-                case "val3":
-                    activity = 1.55;
-                    break;
-                case "val4":
-                    activity = 1.725;
-                    break;
-                case "val5":
-                    activity = 1.9;
-                    break;
-                default:
-                    activity = 0;
-                    break;
-            }
+            label_bdf = "error";
+            err_bdf = " " + args.Value.ToString() + " body fat won't be included";
+            fat = "";
         }
-        void Submit()
+        else
         {
-            if (GenderRadio == "")
+            label_bdf = "error";
+            err_bdf = " " + args.Value.ToString() + " is not valid body fat";
+            fat = "";
+        }
+    }
+    void activity_select(ChangeEventArgs args)
+    {
+        switch ((args.Value).ToString())
+        {
+            case "val1":
+                activity = 1.2;
+                break;
+            case "val2":
+                activity = 1.375;
+                break;
+            case "val3":
+                activity = 1.55;
+                break;
+            case "val4":
+                activity = 1.725;
+                break;
+            case "val5":
+                activity = 1.9;
+                break;
+            default:
+                activity = 0;
+                break;
+        }
+    }
+    void Submit()
+    {
+        if (GenderRadio == "")
+        {
+            label_gender = "error";
+            err_gender = " Please select one or the closes one";
+        }
+        else if (age != "" && weight != "" && height != "")
+        {
+            if (lbm == true)
             {
-                label_gender = "error";
-                err_gender = " Please select one or the closes one";
-            }
-            else if (age != "" && weight != "" && height != "")
-            {
-                if (lbm == true)
-                {
-                    weight_lbm = (double.Parse(weight) - double.Parse(weight) * double.Parse(fat) / 100).ToString();
-                    lbm = false;
-                }
-                else 
-                {
-                    weight_lbm = (double.Parse(weight)).ToString();
-                }
-                //Women BMR = 655 + (9.6 X weight in kg) +(1.8 x height in cm) – (4.7 x age in yrs)
-                //Men BMR = 66 + (13.7 X weight in kg) +(5 x height in cm) – (6.8 x age in yrs)
-                switch (GenderRadio)
-                {
-                    case "Male":
-                        result = Math.Round((66 + (13.7 * double.Parse(weight_lbm)) + (5 * double.Parse(height) - (6.8 * double.Parse(age)))) * activity);
-                        break;
-                    case "Female":
-                        result = Math.Round((655 + (9.6 * double.Parse(weight_lbm)) + (1.8 * double.Parse(height) - (4.7 * double.Parse(age)))) * activity);
-                        break;
-                }
+                weight_lbm = (double.Parse(weight) - double.Parse(weight) * double.Parse(fat) / 100).ToString();
+                lbm = false;
             }
             else
             {
-                if (age == "") {
-                    label_age = "error";
-                    err_age = " Please fill in the age";
-                }
-                if (weight == "")
-                {
-                    label_wgh = "error";
-                    err_wgh = " Please fill in the weight";
-                }
-                if (height == "")
-                {
-                    label_hgt = "error";
-                    err_hgt = " Please fill in the height";
-                }
+                weight_lbm = (double.Parse(weight)).ToString();
+            }
+            //Women BMR = 655 + (9.6 X weight in kg) +(1.8 x height in cm) – (4.7 x age in yrs)
+            //Men BMR = 66 + (13.7 X weight in kg) +(5 x height in cm) – (6.8 x age in yrs)
+            switch (GenderRadio)
+            {
+                case "Male":
+                    result = Math.Round((66 + (13.7 * double.Parse(weight_lbm)) + (5 * double.Parse(height) - (6.8 * double.Parse(age)))) * activity);
+                    break;
+                case "Female":
+                    result = Math.Round((655 + (9.6 * double.Parse(weight_lbm)) + (1.8 * double.Parse(height) - (4.7 * double.Parse(age)))) * activity);
+                    break;
+            }
+        }
+        else
+        {
+            if (age == "")
+            {
+                label_age = "error";
+                err_age = " Please fill in the age";
+            }
+            if (weight == "")
+            {
+                label_wgh = "error";
+                err_wgh = " Please fill in the weight";
+            }
+            if (height == "")
+            {
+                label_hgt = "error";
+                err_hgt = " Please fill in the height";
             }
         }
     }
+}

@@ -1,4 +1,10 @@
-﻿#error {
+﻿.display {
+    border: 1px, solid, black;
+}
+.left_display {
+    border: 1px, solid, black;
+}
+#error {
     color:darkred;
 }
 #noterror {
