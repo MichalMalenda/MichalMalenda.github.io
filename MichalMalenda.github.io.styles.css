@@ -1,4 +1,10 @@
 /* /Pages/TDEE.razor.rz.scp.css */
+.display[inherit-scope] {
+    border: 1px, solid, black;
+}
+.left_display[inherit-scope] {
+    border: 1px, solid, black;
+}
 #error[inherit-scope] {
     color:darkred;
 }

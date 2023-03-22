@@ -121,7 +121,7 @@
       "url": "_framework\/dotnet.5.0.17.js"
     },
     {
-      "hash": "sha256-s0C8xs915K01uU8zOIGAXThFtrVHbSyNtozkCH7Fc1k=",
+      "hash": "sha256-bhkSDV34NptzTeAh64S+ubW8npJkelstrEEQKWWIXCE=",
       "url": "MichalMalenda.github.io.styles.css"
     },
     {
@@ -269,7 +269,7 @@
       "url": "_framework\/System.Text.Json.dll"
     },
     {
-      "hash": "sha256-2J2QKPhcB7IZx+dRYabNg8tUJNmdHK2K3lwlfwQaGik=",
+      "hash": "sha256-hOeCrVhM1gGZ8uaznZTM9YnS9U+rJatpQ5F9fU9DWPE=",
       "url": "_framework\/MichalMalenda.github.io.dll"
     },
     {
@@ -425,7 +425,7 @@
       "url": "_framework\/System.Private.CoreLib.dll"
     },
     {
-      "hash": "sha256-QmX89w8jRPgkLRmlvjV3S4dzee+56odGV598jwzzuMU=",
+      "hash": "sha256-KcU9PkoOjEBlSb8iJS7O+Vg3MFtqHdNS5nkdejlRLe8=",
       "url": "_framework\/blazor.boot.json"
     },
     {
@@ -433,5 +433,5 @@
       "url": "_framework\/blazor.webassembly.js"
     }
   ],
-  "version": "4TRHZLwV"
+  "version": "ZhC9xNTQ"
 };
