@@ -1,9 +1,19 @@
 /* /Pages/TDEE.razor.rz.scp.css */
 .display[inherit-scope] {
-    border: 1px, solid, black;
+    border: 1px solid black;
 }
 .left_display[inherit-scope] {
-    border: 1px, solid, black;
+    border: 0px solid black;
+    position: absolute;
+    left: 200px;
+    width: 35%;
+    float: left;
+}
+.right_display[inherit-scope] {
+    border: 0px solid black;
+    position: sticky;
+    width: 60%;
+    float: right;
 }
 #error[inherit-scope] {
     color:darkred;
