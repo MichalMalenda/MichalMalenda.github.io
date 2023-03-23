@@ -9,10 +9,10 @@
     Basal Metabolic Rate (BMR) is the amount of energy (calories) that a person needs to maintain basic bodily functions such as breathing, circulation, and digestion. It is calculated using the Harris-Benedict equation, which takes into account a person’s age, gender, height, and weight.
     <br />
     <br />
-    The Harris-Benedict equation for men is: BMR = 66 + (13.7 x weight in kg) + (5 x height in cm) – (6.8 x age in years)
+    The Harris-Benedict equation for men is:<br />BMR = 66 + (13.7 x weight in kg) + (5 x height in cm) – (6.8 x age in years)
     <br />
     <br />
-    The Harris-Benedict equation for women is: BMR = 655 + (9.6 x weight in kg) + (1.8 x height in cm) – (4.7 x age in years)
+    The Harris-Benedict equation for women is:<br />BMR = 655 + (9.6 x weight in kg) + (1.8 x height in cm) – (4.7 x age in years)
     <br />
     <br />
     Once the BMR is calculated, it is multiplied by an activity factor to determine the total daily energy expenditure. The activity factor is based on a person’s activity level and takes into account any additional energy expenditure from physical activity.
@@ -94,7 +94,7 @@
     string err_age, err_wgh, err_hgt, err_bdf, label_age, label_wgh, label_hgt, label_bdf, err_gender, label_gender = "";
     string age = "", weight = "", height = "", fat = "", weight_lbm = "";
     double activity = 1.2;
-    bool lbm = true;
+    bool lbm = false;
     double result;
     void gender_select(ChangeEventArgs args)
     {
@@ -135,7 +135,6 @@
                 label_wgh = "noterror";
                 err_wgh = " ✔";
                 weight = args.Value.ToString();
-                lbm = true;
             }
             else
             {
@@ -191,6 +190,7 @@
                 label_bdf = "error";
                 err_bdf = " " + args.Value.ToString() + " is not a valid number";
                 fat = "";
+                lbm = false;
             }
         }
         else if (args.Value.ToString() == "")
@@ -198,6 +198,7 @@
             label_bdf = "error";
             err_bdf = " " + args.Value.ToString() + " body fat won't be included";
             fat = "";
+            lbm = false;
         }
         else
         {
@@ -226,7 +227,7 @@
                 activity = 1.9;
                 break;
             default:
-                activity = 0;
+                activity = 1.2;
                 break;
         }
     }
@@ -241,12 +242,13 @@
         {
             if (lbm == true)
             {
-                weight_lbm = (double.Parse(weight) - double.Parse(weight) * double.Parse(fat) / 100).ToString();
+                weight_lbm = (double.Parse(weight) - (double.Parse(weight) * double.Parse(fat) / 100)).ToString();
                 lbm = false;
             }
             else
             {
                 weight_lbm = (double.Parse(weight)).ToString();
+                lbm = false;
             }
             //Women BMR = 655 + (9.6 X weight in kg) +(1.8 x height in cm) – (4.7 x age in yrs)
             //Men BMR = 66 + (13.7 X weight in kg) +(5 x height in cm) – (6.8 x age in yrs)
