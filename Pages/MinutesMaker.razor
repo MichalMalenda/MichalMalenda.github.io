@@ -1,0 +1,27 @@
+﻿@page "/minutesmaker"
+@inject HttpClient Http
+@using System.Text;
+@using Microsoft.JSInterop;
+
+<title>Minutes Maker</title>
+<h1>Minutes Maker</h1>
+
+<div class="top_display">
+    <textarea type="text" id="text_field_in" name="text_field_in" placeholder="Type here. Enter will generate a new point." @bind="InputValue" @oninput="@(e => { InputValue = e.Value.ToString();})" />
+</div>
+<div class="bottom_display">
+    <button @onclick="Download">Download</button>
+</div>
+
+
+@code {
+
+    private string InputValue { get; set; }
+    private async Task Download()
+    {
+        var data = new StringContent(InputValue, Encoding.UTF8, "text/plain");
+        var response = await Http.PostAsync("api/download", data);
+        var content = await response.Content.ReadAsStringAsync();
+        //await JSRuntime.InvokeVoidAsync("saveAsFile", "file.txt", content);
+    }
+}
