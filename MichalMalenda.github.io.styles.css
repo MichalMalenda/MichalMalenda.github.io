@@ -95,6 +95,103 @@ button[inherit-scope] {
         background-color: #A5C9FF;
         color: #212121;
     }
+/* /Pages/MinutesMaker.razor.rz.scp.css */
+.display[inherit-scope] {
+    border: 1px solid black;
+}
+/*.top_display {
+    background-color: black;
+    border-radius: 25px;
+    height: 200px;
+    width: 80%;
+}
+.bottom_display {
+    background-color: red;
+    border-radius: 25px;
+    width: 80%;
+    height: 200px;
+}*/
+#text_field_in[inherit-scope] {
+    border-radius: 15px;
+    margin: 20px;
+    background-color: black;
+    color: #e5e5e5;
+    width: 450px;
+    height: 150px;
+    border: none;
+    resize: none;
+    outline: none;
+}
+    #text_field_in:active[inherit-scope] {
+        border: none;
+    }
+#label_field_out[inherit-scope] {
+    border-radius: 15px;
+    margin: 20px;
+    background-color: black;
+    color: #e5e5e5;
+    width: 450px;
+    height: 150px;
+}
+#error[inherit-scope] {
+    color: darkred;
+}
+#noterror[inherit-scope] {
+    color: #A5FFC9;
+}
+#result[inherit-scope] {
+    border: none;
+}
+.result[inherit-scope] {
+    border: none;
+}
+#col[inherit-scope]{
+    width:200px;
+}
+#activity[inherit-scope] {
+    width: 175px;
+    height: 25px;
+    background-color: #212121;
+    box-shadow: none;
+    color: #e5e5e5;
+}
+.text_box_in[inherit-scope] {
+    width: 40px;
+    height: 25px;
+    background-color: #212121;
+    box-shadow: none;
+    color: #e5e5e5;
+}
+.text_box_label[inherit-scope] {
+    width: 100px;
+    height: 25px;
+    text-align: right;
+    display: inline-block;
+}
+button[inherit-scope] {
+    position: relative;
+    display: inline-block;
+    width: 100px;
+    height: 36px;
+    border-radius: 18px;
+    background-color: #A5C9FF;
+    border: solid 1px transparent;
+    color: #212121;
+    font-size: 18px;
+    font-weight: 300;
+    cursor: pointer;
+    transition: all .1s ease-in-out;
+}
+    button:hover[inherit-scope] {
+        background-color: transparent;
+        transition: all .1s ease-in-out;
+        color: #A5C9FF;
+    }
+
+    button:active[inherit-scope] {
+        background-color: #A5C9FF;
+        color: #212121;
+    }
 /* /Pages/TDEE.razor.rz.scp.css */
 .display[inherit-scope] {
     border: 1px solid black;
