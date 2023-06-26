@@ -1,0 +1,19 @@
+﻿@page "/0orO"
+<title>TDEE Calculator</title>
+<h1>Zero or Not Zero Tool</h1>
+
+<div class="top_display">
+    <textarea type="text" id="text_field_in" name="text_field_in" placeholder="                                 Copy/Paste text here." @bind="InputValue" @oninput="@(e => { InputValue = e.Value.ToString(); UpdateLabel(); })"/>
+</div>
+<div class="bottom_display">
+    <label id="label_field_out">@LabelValue</label>
+</div>
+
+
+@code {
+    private string InputValue { get; set; }
+    private string LabelValue { get; set; }
+    private void UpdateLabel() {
+        LabelValue = InputValue.ToLower();
+    }
+}
