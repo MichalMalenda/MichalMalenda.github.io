@@ -111,6 +111,11 @@ button[inherit-scope] {
     width: 80%;
     height: 200px;
 }*/
+textarea[inherit-scope] {
+    resize: both;
+    min-width: 450px;
+    min-height: 150px;
+}
 #text_field_in[inherit-scope] {
     border-radius: 15px;
     margin: 20px;
@@ -119,7 +124,7 @@ button[inherit-scope] {
     width: 450px;
     height: 150px;
     border: none;
-    resize: none;
+    resize: both;
     outline: none;
 }
     #text_field_in:active[inherit-scope] {
@@ -200,7 +205,7 @@ button[inherit-scope] {
     border: 0px solid black;
     position: absolute;
     left: 200px;
-    width: 40%;
+    width: 100%;
     float: left;
 }
 .right_display[inherit-scope] {
@@ -208,6 +213,42 @@ button[inherit-scope] {
     position: static;
     width: 55%;
     float: right;
+}
+.sticky_left[inherit-scope] {
+    border: 0px solid black;
+    position: relative;
+    left: 400px;
+    width: 55%;
+}
+.sticky_u_left[inherit-scope] {
+    position: static;
+    left: 200px;
+    width: 300px;
+    display: flex;
+}
+.res_box[inherit-scope] {
+    border: 1px solid #212121;
+    border-radius: 15px;
+    left: 200px;
+    width: 95px;
+    text-align: center;
+    background-color: black;
+}
+.mbox[inherit-scope] {
+    border: 1px solid #212121;
+    border-radius: 15px;
+    left: 200px;
+    width: 95px;
+    text-align: center;
+    background-color: black;
+}
+.bbox[inherit-scope] {
+    border: 1px solid #212121;
+    border-radius: 15px;
+    left: 200px;
+    width: 95px;
+    text-align: center;
+    background-color: black;
 }
 #error[inherit-scope] {
     color:darkred;
@@ -227,14 +268,14 @@ button[inherit-scope] {
 #activity[inherit-scope] {
     width: 175px;
     height: 25px;
-    background-color: #212121;
+    background-color: black;
     box-shadow: none;
     color: #e5e5e5;
 }
 .text_box_in[inherit-scope] {
     width: 40px;
     height: 25px;
-    background-color: #212121;
+    background-color: black;
     box-shadow: none;
     color: #e5e5e5;
 }
