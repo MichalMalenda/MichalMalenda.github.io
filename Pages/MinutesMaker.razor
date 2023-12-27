@@ -20,20 +20,62 @@
       URL.revokeObjectURL(url);
     }
 </script>
-<div class="top_display">
-    <textarea type="text" id="text_field_in" name="text_field_in" placeholder="Type here. Enter will generate a new point." @bind="InputValue" @oninput="@(e => { InputValue = e.Value.ToString(); })" />
+<div class="left_display">
+    <textarea type="text" id="text_field_in" name="text_field_in" placeholder="Type here. Hashtag on the first line will be the fine name. Enter will generate a new point." @bind="InputValue" @oninput="@(e => { InputValue = e.Value.ToString(); })" />
+    <div class="sticky_u_left">
+        <div class="text_box_label">
+            <button @onclick="DownloadNotes">Download</button>
+        </div>
+    </div>
+    <br />
+    <b @onclick="ShowDescription">Click here to learn more about the tool...</b>
+    <br />
+    <br />
 </div>
-<div class="bottom_display">
-    <button @onclick="DownloadNotes">Download</button>
-</div>
+
+@if (showTextD)
+{
+    <div class="sticky_left">
+        Minutes maker is a tool to make taking meeting notes easier. Have you ever tried to note down things that come up in the meetings and you quickly open up notepad.exe and then you need to save the file choose location and click save?
+        <br />
+        <br />
+        With this tool you can make notes quicker, without a need to open notepad and as you finish the meeting just click Download to save your notes to your downloads folder with the current date and time. If you need a custom notes name for the file just start the first line with # like #name of the meeting, then you can start every new note/thought in new line and it will become a bullet point in your text file.
+        <br />
+        <br />
+        The information noted down with this tool is not stored on any server, there is no temporary place that the data is being converted in.
+        <br />
+        <br />
+    </div>
+}
 
 
 @code {
-
+    private bool showTextD = false;
+    private void ShowDescription()
+    {
+        showTextD = !showTextD;
+    }
     private string InputValue { get; set; }
+    private string filename_hash;
     private Stream GetFileStream()
     {
-        string userInput = InputValue;
+        string userInput = (InputValue).Trim();
+        string firstLine = userInput.Split('\n')[0];
+        bool check1 = firstLine.Contains("#");
+        if (check1)
+        {
+            filename_hash = firstLine.Replace("#", "");
+        }
+        else
+        {
+            filename_hash = null;
+            userInput = " • " + userInput;
+        }
+        bool check2 = userInput.Contains("\n");
+        if (check2)
+        {
+            userInput = userInput.Replace("\n", "\n • ");
+        }
         var randomBinaryData = System.Text.Encoding.UTF8.GetBytes(userInput);
         var fileStream = new MemoryStream(randomBinaryData);
         return fileStream;
@@ -43,8 +85,17 @@
     {
         DateTime now = DateTime.Now;
         var fileStream = GetFileStream();
-        var fileName = now.ToString("yyyy_MM_dd_hh_mm_ss_") + "minutes.txt";
+        
         using var streamRef = new DotNetStreamReference(stream: fileStream);
-        await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+        if (String.IsNullOrEmpty(filename_hash))
+        {
+            var fileName = now.ToString("yyyy_MM_dd_hh_mm_ss_") + "minutes.txt";
+            await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+        }
+        else
+        {
+            var fileName = filename_hash + ".txt";
+            await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+        }
     }
 }
