@@ -5,7 +5,7 @@
     border: 0px solid black;
     position: absolute;
     left: 200px;
-    width: 40%;
+    width: 100%;
     float: left;
 }
 .right_display {
@@ -13,6 +13,42 @@
     position: static;
     width: 55%;
     float: right;
+}
+.sticky_left {
+    border: 0px solid black;
+    position: relative;
+    left: 400px;
+    width: 55%;
+}
+.sticky_u_left {
+    position: static;
+    left: 200px;
+    width: 300px;
+    display: flex;
+}
+.res_box {
+    border: 1px solid #212121;
+    border-radius: 15px;
+    left: 200px;
+    width: 95px;
+    text-align: center;
+    background-color: black;
+}
+.mbox {
+    border: 1px solid #212121;
+    border-radius: 15px;
+    left: 200px;
+    width: 95px;
+    text-align: center;
+    background-color: black;
+}
+.bbox {
+    border: 1px solid #212121;
+    border-radius: 15px;
+    left: 200px;
+    width: 95px;
+    text-align: center;
+    background-color: black;
 }
 #error {
     color:darkred;
@@ -32,14 +68,14 @@
 #activity {
     width: 175px;
     height: 25px;
-    background-color: #212121;
+    background-color: black;
     box-shadow: none;
     color: #e5e5e5;
 }
 .text_box_in {
     width: 40px;
     height: 25px;
-    background-color: #212121;
+    background-color: black;
     box-shadow: none;
     color: #e5e5e5;
 }

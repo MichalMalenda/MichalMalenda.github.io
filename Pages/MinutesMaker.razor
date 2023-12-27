@@ -2,26 +2,49 @@
 @inject HttpClient Http
 @using System.Text;
 @using Microsoft.JSInterop;
+@using System.IO
+@inject IJSRuntime JS
 
 <title>Minutes Maker</title>
 <h1>Minutes Maker</h1>
-
+<script>
+    window.downloadFileFromStream = async (fileName, contentStreamReference) => {
+      const arrayBuffer = await contentStreamReference.arrayBuffer();
+      const blob = new Blob([arrayBuffer]);
+      const url = URL.createObjectURL(blob);
+      const anchorElement = document.createElement('a');
+      anchorElement.href = url;
+      anchorElement.download = fileName ?? '';
+      anchorElement.click();
+      anchorElement.remove();
+      URL.revokeObjectURL(url);
+    }
+</script>
 <div class="top_display">
-    <textarea type="text" id="text_field_in" name="text_field_in" placeholder="Type here. Enter will generate a new point." @bind="InputValue" @oninput="@(e => { InputValue = e.Value.ToString();})" />
+    <textarea type="text" id="text_field_in" name="text_field_in" placeholder="Type here. Enter will generate a new point." @bind="InputValue" @oninput="@(e => { InputValue = e.Value.ToString(); })" />
 </div>
 <div class="bottom_display">
-    <button @onclick="Download">Download</button>
+    <button @onclick="DownloadNotes">Download</button>
 </div>
 
 
 @code {
 
     private string InputValue { get; set; }
-    private async Task Download()
+    private Stream GetFileStream()
     {
-        var data = new StringContent(InputValue, Encoding.UTF8, "text/plain");
-        var response = await Http.PostAsync("api/download", data);
-        var content = await response.Content.ReadAsStringAsync();
-        //await JSRuntime.InvokeVoidAsync("saveAsFile", "file.txt", content);
+        string userInput = InputValue;
+        var randomBinaryData = System.Text.Encoding.UTF8.GetBytes(userInput);
+        var fileStream = new MemoryStream(randomBinaryData);
+        return fileStream;
+    }
+
+    private async Task DownloadNotes()
+    {
+        DateTime now = DateTime.Now;
+        var fileStream = GetFileStream();
+        var fileName = now.ToString("yyyy_MM_dd_hh_mm_ss_") + "minutes.txt";
+        using var streamRef = new DotNetStreamReference(stream: fileStream);
+        await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
     }
 }

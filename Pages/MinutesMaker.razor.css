@@ -13,6 +13,11 @@
     width: 80%;
     height: 200px;
 }*/
+textarea {
+    resize: both;
+    min-width: 450px;
+    min-height: 150px;
+}
 #text_field_in {
     border-radius: 15px;
     margin: 20px;
@@ -21,7 +26,7 @@
     width: 450px;
     height: 150px;
     border: none;
-    resize: none;
+    resize: both;
     outline: none;
 }
     #text_field_in:active {
