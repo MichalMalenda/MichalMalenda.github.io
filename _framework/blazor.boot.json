@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "MichalMalenda.github.io",
   "resources": {
-    "hash": "sha256-kDRSp3WFbi0hGkvv2PJHI5CzfV9ZQaYHUSNXoBvd04s=",
+    "hash": "sha256-HE2uSKr14Nb58xTZvzEdOBdGZ+Q/xlgpxAgyfQK3pDs=",
     "jsModuleNative": {
       "dotnet.native.8.0.0.45ykigla5r.js": "sha256-LjLDIz9+J7uuiwMlQ4HbNx2BnSpphOtO2MwkoI28vdI="
     },
@@ -17,7 +17,7 @@
       "icudt_no_CJK.dat": "sha256-L7sV7NEYP37/Qr2FPCePo5cJqRgTXRwGHuwF5Q+0Nfs="
     },
     "assembly": {
-      "MichalMalenda.github.io.wasm": "sha256-sbAMGckw5s+KEHfRDubIMW6FmHWnWiQ2GQXXCDTCOWI=",
+      "MichalMalenda.github.io.wasm": "sha256-tau+P1Sx+kDmp0LCc2wNR3ENHlccaRTfhDHU0vTAnGA=",
       "Microsoft.AspNetCore.Components.Forms.wasm": "sha256-MDZ4OsDOFtKIvzHG/ls7b0Ai9NpEDV0D6KgOOMw+UTQ=",
       "Microsoft.AspNetCore.Components.wasm": "sha256-TPvrijeXcXixyRtMbhBi53qoNWfeXMaMRYDYJ8dRfEE=",
       "Microsoft.AspNetCore.Components.Web.wasm": "sha256-bfNAl/j/8mLDC2zCSPHCbE4K8QarsuIMT8kvBfsQjxY=",
