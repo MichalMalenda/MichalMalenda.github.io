@@ -60,6 +60,7 @@
     private Stream GetFileStream()
     {
         string userInput = (InputValue).Trim();
+
         string firstLine = userInput.Split('\n')[0];
         bool check1 = firstLine.Contains("#");
         if (check1)
