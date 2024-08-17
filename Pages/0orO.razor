@@ -1,9 +1,19 @@
 ﻿@page "/0orO"
+
 <title>Zero or Not Zero Tool</title>
 <h1>Zero or Not Zero Tool</h1>
-
 <div class="top_display">
-    <textarea type="text" id="text_field_in" name="text_field_in" placeholder="                                 Copy/Paste text here." @bind="InputValue" @oninput="@(e => { InputValue = e.Value.ToString(); UpdateLabel(); })"/>
+    <EditForm Model="@this">
+        <InputRadioGroup @bind-Value="selectedValue">
+            <InputRadio Value=1>To Chr</InputRadio>To Chr
+            <InputRadio Value=2>To ASCII</InputRadio>To ASCII
+            <InputRadio Value=3>To UNICODE</InputRadio>To UNICODE
+        </InputRadioGroup>
+    </EditForm>
+</div>
+<div class="top_display">
+    <textarea type="text" id="text_field_in" name="text_field_in" placeholder="                                 Copy/Paste text here." 
+    @bind="InputValue" @oninput="@(e => { InputValue = e.Value.ToString(); UpdateLabel(); })"/>
 </div>
 <div class="bottom_display">
     <label id="label_field_out">@LabelValue</label>
@@ -13,7 +23,57 @@
 @code {
     private string InputValue { get; set; }
     private string LabelValue { get; set; }
-    private void UpdateLabel() {
-        LabelValue = InputValue.ToLower();
+    private int selectedValue = 0;
+    private void OnRadioChanged(ChangeEventArgs e)
+    {
+        selectedValue = int.Parse(e.Value.ToString());
+        //HandleRadioChange(selectedValue);
+    }
+    private string asciiValues = string.Empty;
+    //private void UpdateLabel() {
+    //    LabelValue = InputValue.ToLower();
+    //}
+    private void UpdateLabel()
+    {
+        switch (selectedValue)
+        {
+            case 1:
+                LabelValue = $"To Chr: {InputValue.ToLower()}";
+                break;
+            case 2:
+                LabelValue = string.Join(" ", InputValue.Select(c => ((int)c).ToString()));
+                break;
+            case 3:
+                LabelValue = $"To UNICODE: {InputValue.ToLower()}";
+                break;
+            default:
+                LabelValue = "Please choose which option would you like to use.";
+                break;
+        }
+    }
+}
+    private void ConvertToAscii(string inputString)
+    {
+        asciiValues = string.Join(" ", inputString.Select(c => ((int)c).ToString()));
+    }
+    private void HandleRadioChange(int value)
+    {
+        switch (value)
+        {
+            case 1:
+                LabelValue = "1";
+                break;//not sure why this one is not working but prob need to change oninput function to handleradio or cr a new one so that handle radio changes to a variable basing it on another val
+            case 2:
+                ConvertToAscii(InputValue);
+                LabelValue = asciiValues;
+                Console.WriteLine(LabelValue);
+                break;
+            case 3:
+                LabelValue = "3";
+                break;
+            default:
+                LabelValue = InputValue.ToLower();
+                break;
+        }
     }
 }
