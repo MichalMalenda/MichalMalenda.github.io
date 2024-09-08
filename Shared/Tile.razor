@@ -1,0 +1,22 @@
+﻿@inject NavigationManager Navigation
+
+@code {
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public string Content { get; set; }
+
+    [Parameter]
+    public string Link { get; set; }
+
+    private void NavigateToLink()
+    {
+        Navigation.NavigateTo(Link);
+    }
+}
+
+<div class="tile" @onclick="NavigateToLink">
+    <h3>@Title</h3>
+    <p>@Content</p>
+</div>

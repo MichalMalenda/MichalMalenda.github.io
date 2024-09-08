@@ -1,0 +1,50 @@
+﻿@page "/sb"
+
+<input type="text" @bind="searchTerm" @bind:event="oninput" placeholder="Search..." class="search-bar" />
+
+<div class="gallery-container">
+    @foreach (var tile in filteredTiles)
+    {
+        <Tile Title="@tile.Title" Content="@tile.Content" Link="@tile.Link" />
+    }
+</div>
+
+@code {
+    private string searchTerm = string.Empty;
+    private List<TileData> tiles = new List<TileData>
+    {
+        new TileData { Title = "Article 1", Content = "This is the content of article 1.", Link="/article1"},
+        new TileData { Title = "Project 1", Content = "This is the content of project 1.", Link="/article1" },
+        new TileData { Title = "Article 2", Content = "This is the content of article 2.", Link="/article1" },
+        new TileData { Title = "Project 2", Content = "This is the content of project 2.", Link="/article1" }
+    };
+
+    private IEnumerable<TileData> filteredTiles => tiles.Where(tile =>
+        tile.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+        tile.Content.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+
+    private class TileData
+    {
+        public string Title { get; set; }
+        public string Content { get; set; }
+        public string Link { get; set; }
+    }
+}
+<!--
+<div class="search-bar">
+    <input bind="SearchText" bind:event="oninput" placeholder="Search..." />
+</div>
+
+code {
+    private string SearchText { get; set; } = string.Empty;
+    private void OnSearchChanged(ChangeEventArgs e)
+    {
+        SearchText = e.Value.ToString();
+        // Add your search logic here
+    }
+        private List<string> Items = new List<string> { "Apple", "Banana", "Cherry" };
+        private List<string> FilteredItems => Items
+            .Where(item => item.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+}
+-->

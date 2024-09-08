@@ -1,0 +1,17 @@
+﻿@page "/sb"
+<div class="search-bar">
+    <input @bind="SearchText" @bind:event="oninput" placeholder="Search..." />
+</div>
+
+@code {
+    private string SearchText { get; set; } = string.Empty;
+    private void OnSearchChanged(ChangeEventArgs e)
+    {
+        SearchText = e.Value.ToString();
+        // Add your search logic here
+    }
+        private List<string> Items = new List<string> { "Apple", "Banana", "Cherry" };
+        private List<string> FilteredItems => Items
+            .Where(item => item.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+}

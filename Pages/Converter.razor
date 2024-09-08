@@ -1,14 +1,14 @@
-﻿@page "/0orO"
+﻿@page "/converter"
 @using System.Text
 
-<title>Zero or Not Zero Tool</title>
-<h1>Zero or Not Zero Tool</h1>
+<title>Converter</title>
+<h1>Converter</h1>
 <div class="top_display">
     <EditForm Model="@this">
-        <InputRadioGroup @bind-Value="selectedValue" @onchange="@(e=>{test();})">
-            <InputRadio Value=1>To Chr</InputRadio>To Chr
-            <InputRadio Value=2>To ASCII</InputRadio>To ASCII
-            <InputRadio Value=3>To UNICODE</InputRadio>To UNICODE
+        <InputRadioGroup @bind-Value="selectedValue" @onchange="@(e=>{UpdateLabel();})">
+            <!--InputRadio Value=1>To Chr</InputRadio>To Chr-->
+            <InputRadio Value=1>To ASCII</InputRadio>To ASCII
+            <InputRadio Value=2>To UNICODE</InputRadio>To UNICODE
         </InputRadioGroup>
     </EditForm>
 </div>
@@ -30,24 +30,6 @@
     //private void UpdateLabel() {
     //    LabelValue = InputValue.ToLower();
     //}
-    private void test()
-    {
-        switch (selectedValue)
-        {
-            case 1:
-                LabelValue = $"To Chr: {InputValue.ToLower()}";
-                break;
-            case 2:
-                LabelValue = string.Join(" ", InputValue.Select(c => ((int)c).ToString()));
-                break;
-            case 3:
-                LabelValue = $"To UNICODE: {InputValue.ToLower()}";
-                break;
-            default:
-                LabelValue = "Please choose which option would you like to use.";
-                break;
-        }
-    }
     private string ConvertToUnicodeString(string input)
     {
 
@@ -85,12 +67,9 @@
         switch (selectedValue)
         {
             case 1:
-                LabelValue = ConvertToCharArray(InputValue); ;
-                break;
-            case 2:
                 LabelValue = string.Join(" ", InputValue.Select(c => ((int)c).ToString()));
                 break;
-            case 3:
+            case 2:
                 LabelValue = ConvertToUnicodeString(InputValue);
                 break;
             default:
