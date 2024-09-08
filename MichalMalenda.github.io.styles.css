@@ -355,6 +355,23 @@ button[inherit-scope] {
     background-color: #212121;
 }
 
+a[b-2nt8angtsa] {
+    color: white;
+    text-decoration: none;
+}
+
+    a:visited[b-2nt8angtsa] {
+        color: white;
+    }
+
+    a:hover[b-2nt8angtsa] {
+        text-decoration: none;
+    }
+
+    a:active[b-2nt8angtsa] {
+        text-decoration: none;
+    }
+
 .top-row[b-2nt8angtsa] {
     background-color: #212121;
     border-bottom: 1px solid #212121;
@@ -362,6 +379,7 @@ button[inherit-scope] {
     height: 3.5rem;
     display: flex;
     align-items: center;
+    color:white;
 }
 
     .top-row[b-2nt8angtsa]  a, .top-row .btn-link[b-2nt8angtsa] {
@@ -475,80 +493,86 @@ button[inherit-scope] {
     }
 }
 /* /Shared/SearchBar.razor.rz.scp.css */
-@page "/sb"
-<div class="search-bar">
-    <input @bind="SearchText" @bind:event="oninput" placeholder="Search..." />
-</div>
-
-@code[b-04mkm8iwjr] {
-    private string SearchText { get; set; } = string.Empty;
-    private void OnSearchChanged(ChangeEventArgs e)[b-04mkm8iwjr]
-    {
-        SearchText = e.Value.ToString();
-        // Add your search logic here
-    }
-        private List<string> Items = new List<string[b-04mkm8iwjr]> { "Apple", "Banana", "Cherry" };
-        private List<string> FilteredItems => Items
-            .Where(item => item.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
-            .ToList();[b-04mkm8iwjr]
-}
-/* /Shared/SubPage.razor.rz.scp.css */
-.search-bar[b-ctcpcnrvaw] {
+.search-bar[b-04mkm8iwjr] {
     width: 50%;
     padding: 10px;
     font-size: 16px;
     margin: 20px 0;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    background-color: black;
+    color: white;
+    border: none;
+    border-radius: 5px;
 }
 
-.gallery-container[b-ctcpcnrvaw] {
+.gallery-container[b-04mkm8iwjr] {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
 }
 
-.tile[b-ctcpcnrvaw] {
-    width: 150px;
-    height: 150px;
+.tile[b-04mkm8iwjr] {
+    width: 100px;
+    height: 100px;
     margin: 10px;
     background-color: #000000;
+    font: #e5e5e5;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     cursor: pointer;
     transition: background-color 0.3s;
+    border-radius: 25%;
+    border: none;
 }
 
-    .tile:hover[b-ctcpcnrvaw] {
-        background-color: #ffffff;
+    .tile:hover[b-04mkm8iwjr] {
+        background-color: #A5C9FF;
+        color: #212121;
     }
+/* /Shared/SubPage.razor.rz.scp.css */
 /* /Shared/Tile.razor.rz.scp.css */
 .search-bar[b-yyttsqt6cj] {
     width: 50%;
     padding: 10px;
     font-size: 16px;
     margin: 20px 0;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    background-color: black;
+    color: white;
+    border: none;
+    border-radius: 5px;
 }
 
-.tiles-container[b-yyttsqt6cj] {
+
+.gallery-container[b-yyttsqt6cj] {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
 }
 
 .tile[b-yyttsqt6cj] {
-    width: 200px;
-    height: 200px;
+    width: 100px;
+    height: 100px;
     margin: 10px;
-    background-color: #e0e0e0;
+    background-color: #000000;
+    font: #e5e5e5;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     cursor: pointer;
     transition: background-color 0.3s;
+    border-radius: 25%;
+    border: none;
 }
 
     .tile:hover[b-yyttsqt6cj] {
-        background-color: #d0d0d0;
+        background-color: #A5C9FF;
+        color: #212121;
     }
