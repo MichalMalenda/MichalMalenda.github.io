@@ -1,17 +1,40 @@
-﻿@page "/sb"
-<div class="search-bar">
-    <input @bind="SearchText" @bind:event="oninput" placeholder="Search..." />
-</div>
-
-@code {
-    private string SearchText { get; set; } = string.Empty;
-    private void OnSearchChanged(ChangeEventArgs e)
-    {
-        SearchText = e.Value.ToString();
-        // Add your search logic here
-    }
-        private List<string> Items = new List<string> { "Apple", "Banana", "Cherry" };
-        private List<string> FilteredItems => Items
-            .Where(item => item.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
-            .ToList();
+﻿.search-bar {
+    width: 50%;
+    padding: 10px;
+    font-size: 16px;
+    margin: 20px 0;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    background-color: black;
+    color: white;
+    border: none;
+    border-radius: 5px;
 }
+
+.gallery-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.tile {
+    width: 100px;
+    height: 100px;
+    margin: 10px;
+    background-color: #000000;
+    font: #e5e5e5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    border-radius: 25%;
+    border: none;
+}
+
+    .tile:hover {
+        background-color: #A5C9FF;
+        color: #212121;
+    }

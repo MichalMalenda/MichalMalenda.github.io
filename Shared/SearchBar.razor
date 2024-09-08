@@ -1,4 +1,4 @@
-﻿@page "/sb"
+﻿@page "/"
 
 <input type="text" @bind="searchTerm" @bind:event="oninput" placeholder="Search..." class="search-bar" />
 
@@ -13,10 +13,11 @@
     private string searchTerm = string.Empty;
     private List<TileData> tiles = new List<TileData>
     {
-        new TileData { Title = "Article 1", Content = "This is the content of article 1.", Link="/article1"},
-        new TileData { Title = "Project 1", Content = "This is the content of project 1.", Link="/article1" },
-        new TileData { Title = "Article 2", Content = "This is the content of article 2.", Link="/article1" },
-        new TileData { Title = "Project 2", Content = "This is the content of project 2.", Link="/article1" }
+        new TileData { Title = "2024-01-01", Content = "CV", Link="/about" },
+        new TileData { Title = "2024-01-02", Content = "Calculator", Link="/calculator" },
+        new TileData { Title = "2024-01-03", Content = "TDEE Calculator", Link="/tdee" },
+        new TileData { Title = "2024-01-04", Content = "Minutes Maker", Link="/minutesmaker" },
+        new TileData { Title = "2024-01-05", Content = "Text Converter", Link="/converter"}
     };
 
     private IEnumerable<TileData> filteredTiles => tiles.Where(tile =>

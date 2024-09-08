@@ -13,6 +13,23 @@
     background-color: #212121;
 }
 
+a {
+    color: white;
+    text-decoration: none;
+}
+
+    a:visited {
+        color: white;
+    }
+
+    a:hover {
+        text-decoration: none;
+    }
+
+    a:active {
+        text-decoration: none;
+    }
+
 .top-row {
     background-color: #212121;
     border-bottom: 1px solid #212121;
@@ -20,6 +37,7 @@
     height: 3.5rem;
     display: flex;
     align-items: center;
+    color:white;
 }
 
     .top-row ::deep a, .top-row .btn-link {
