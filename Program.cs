@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using MtgApiManager.Lib.Service;
 
 namespace MichalMalenda.github.io
 {
@@ -13,7 +14,8 @@ namespace MichalMalenda.github.io
             var builder = WebAssemblyHostBuilder.CreateDefault(args);
             builder.RootComponents.Add<App>("#app");
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-
+            builder.Services.AddScoped<MtgService>();
+            IMtgServiceProvider serviceProvider = new MtgServiceProvider();
             await builder.Build().RunAsync();
         }
     }

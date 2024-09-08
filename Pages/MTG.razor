@@ -1,0 +1,32 @@
+﻿@page "/mtg"
+@inject MtgService MtgService
+
+<h3>MTG Card Search</h3>
+
+<input @bind="searchQuery" placeholder="Enter card name" />
+<button @onclick="SearchCards">Search</button>
+
+@if (cards != null)
+{
+    <ul>
+        @foreach (var card in cards)
+        {
+            <li>
+                <!--<img src="card.imageUrl" alt="card.name" />-->
+                <p>1</p>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private string searchQuery;
+    private Card[] cards;
+
+    private async Task SearchCards()
+    {
+        cards = await MtgService.SearchCardsAsync(searchQuery);
+    }
+
+}
+
