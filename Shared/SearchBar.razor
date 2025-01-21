@@ -13,22 +13,29 @@
     private string searchTerm = string.Empty;
     private List<TileData> tiles = new List<TileData>
     {
-        new TileData { Title = "2024-01-01", Content = "CV", Link="/about" },
-        new TileData { Title = "2024-01-02", Content = "Calculator", Link="/calculator" },
-        new TileData { Title = "2024-01-03", Content = "TDEE Calculator", Link="/tdee" },
-        new TileData { Title = "2024-01-04", Content = "Minutes Maker", Link="/minutesmaker" },
-        new TileData { Title = "2024-01-05", Content = "Text Converter", Link="/converter"}
+        new TileData { Title = "2024-01-01", Content = "CV", Link="/about", Tag="CV,Michal Malenda,Michał Malenda,Malenda,Data Science,Experience,School,Education,Download"},
+        new TileData { Title = "2024-01-02", Content = "Calculator", Link="/calculator", Tag="Calculator" },
+        new TileData { Title = "2024-01-03", Content = "TDEE Calculator", Link="/tdee", Tag="Calculator,Weight Loss,Activity,Total Daily Energy Expenditure,Basal Metabolic Rate,BMR,Harris-Benedict,TDEE"},
+        new TileData { Title = "2024-01-04", Content = "Minutes Maker", Link="/minutesmaker", Tag="Meeting,Minutes Maker,Download" },
+        new TileData { Title = "2024-01-05", Content = "Text Converter", Link="/converter", Tag="BluePrism,ASCII,UNICODE"},
+        new TileData { Title = "2025-01-21", Content = "WIP", Link="/mtg", Tag="dev"},
+        new TileData { Title = "2025-01-21", Content = "WIP", Link="/article1", Tag="dev"},
+        new TileData { Title = "2025-01-21", Content = "WIP", Link="/about", Tag="dev"},
+        new TileData { Title = "2025-01-21", Content = "test4", Link="/about", Tag="dev"},
+        new TileData { Title = "2025-01-21", Content = "test5", Link="/about", Tag="dev"}
     };
 
     private IEnumerable<TileData> filteredTiles => tiles.Where(tile =>
         tile.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-        tile.Content.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+        tile.Content.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+        tile.Tag.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
 
     private class TileData
     {
         public string Title { get; set; }
         public string Content { get; set; }
         public string Link { get; set; }
+        public string Tag { get; set; }
     }
 }
 <!--
