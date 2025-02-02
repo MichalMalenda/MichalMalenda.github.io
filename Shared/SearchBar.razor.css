@@ -23,7 +23,6 @@
     height: 100px;
     margin: 10px;
     background-color: #000000;
-    font: #e5e5e5;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -32,9 +31,11 @@
     transition: background-color 0.3s;
     border-radius: 25%;
     border: none;
+    color: #e5e5e5;
 }
 
     .tile:hover {
         background-color: #A5C9FF;
         color: #212121;
+        font-weight: bold;
     }

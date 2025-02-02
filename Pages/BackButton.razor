@@ -1,0 +1,9 @@
+﻿@inject NavigationManager Navigation
+
+<button class="back-button" @onclick="() => GoBack()" style="display: flex; gap: 10px;">Go Back</button>
+@code {
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/", true);
+    }
+}
