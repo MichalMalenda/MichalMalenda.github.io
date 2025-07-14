@@ -3,7 +3,6 @@
 }
 .left_display {
     border: 0px solid black;
-    position: absolute;
     left: 200px;
     width: 100%;
     float: left;

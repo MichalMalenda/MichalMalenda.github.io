@@ -1,6 +1,12 @@
 ﻿@page "/"
+@inject NavigationManager Navigation
 
-<input type="text" @bind="searchTerm" @bind:event="oninput" placeholder="Search..." class="search-bar" />
+<input type="text" 
+    @bind="searchTerm" 
+    @bind:event="oninput" 
+    placeholder="Search..." 
+    class="search-bar"
+    @onkeydown="HandleKeyDown" />
 
 <div class="gallery-container">
     @foreach (var tile in filteredTiles)
@@ -29,6 +35,15 @@
         tile.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
         tile.Content.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
         tile.Tag.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && filteredTiles.Count() == 1)
+        {
+            var singleTile = filteredTiles.First();
+            Navigation.NavigateTo(singleTile.Link);
+        }
+    }
 
     private class TileData
     {

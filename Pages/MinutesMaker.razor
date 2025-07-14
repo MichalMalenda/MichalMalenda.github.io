@@ -6,7 +6,9 @@
 @inject IJSRuntime JS
 
 <title>Minutes Maker</title>
-<h1>Minutes Maker</h1>
+<h1 @onclick="ShowDescription" style="cursor: pointer;">
+    Minutes Maker
+</h1>
 <script>
     window.downloadFileFromStream = async (fileName, contentStreamReference) => {
       const arrayBuffer = await contentStreamReference.arrayBuffer();
@@ -20,22 +22,27 @@
       URL.revokeObjectURL(url);
     }
 </script>
-<div class="left_display">
-    <textarea type="text" id="text_field_in" name="text_field_in" placeholder="Type here. Hashtag on the first line will be the fine name. Enter will generate a new point." @bind="InputValue" @oninput="@(e => { InputValue = e.Value.ToString(); })" />
-    <div class="sticky_u_left">
-        <div class="text_box_label">
+@if (!showTextD){
+
+    <div class="left_display">
+        <div class="text_area_wrapper">
+            <textarea id="text_field_in"
+                      name="text_field_in"
+                      placeholder="Type here. Hashtag on the first line will be the file name. Enter will generate a new point."
+                      @bind="InputValue"
+                      @oninput="@(e => { InputValue = e.Value.ToString(); })">
+            </textarea>
+        </div>
+        <div class="button_wrapper">
             <button @onclick="DownloadNotes">Download</button>
         </div>
     </div>
-    <br />
-    <b @onclick="ShowDescription">Click here to learn more about the tool...</b>
-    <br />
-    <br />
-</div>
+
+}
 
 @if (showTextD)
 {
-    <div class="sticky_left">
+    <div class="sticky_right">
         Minutes maker is a tool to make taking meeting notes easier. Have you ever tried to note down things that come up in the meetings and you quickly open up notepad.exe and then you need to save the file choose location and click save?
         <br />
         <br />
@@ -48,15 +55,13 @@
     </div>
 }
 
-
 @code {
     private bool showTextD = false;
-    private void ShowDescription()
-    {
-        showTextD = !showTextD;
-    }
+    private void ShowDescription() => showTextD = !showTextD;
+
     private string InputValue { get; set; }
     private string filename_hash;
+
     private Stream GetFileStream()
     {
         string userInput = (InputValue).Trim();
