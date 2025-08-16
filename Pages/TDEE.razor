@@ -1,152 +1,148 @@
 ﻿@page "/tdee"
 <title>TDEE Calculator</title>
-<h1>TDEE Calculator</h1>
+<h1 @onclick="ShowDescription" style="cursor: pointer;">TDEE Calculator</h1>
 
-<div class="left_display">
-    <div class="result">
-        <p id="result">@result</p>
-    </div>
-    <div class="zero-row">
-        <div class="text_box_label">Gender </div>
-        @foreach (var item in new string[] { "Male", "Female" })
-        {
-            <label for="@item"> </label>
-            <input type="radio" name="gender" id="@item" value="@item" @onchange="gender_select" checked=@(GenderRadio.Equals(item,StringComparison.OrdinalIgnoreCase)) />
-            <label for="@item">@item</label>
-        }
-        <label id="@label_gender">@err_gender </label>
-    </div>
-    <div class="first-row">
-        <div class="text_box_label">Age </div>
-        <input type="text" name="age" class="text_box_in" @onchange="validate_age" placeholder="yr"><label id="@label_age">@err_age </label>
-    </div>
-    <div class="second-row">
-        <div class="text_box_label">Weight </div>
-        <input type="text" name="weight" class="text_box_in" @onchange="validate_weight" placeholder="kg"><label id="@label_wgh">@err_wgh </label>
-    </div>
-    <div class="third-row">
-        <div class="text_box_label">Height </div>
-        <input type="text" name="height" class="text_box_in" @onchange="validate_height" placeholder="cm"><label id="@label_hgt">@err_hgt </label>
-    </div>
-    <div class="fourth-row">
-        <div class="text_box_label">Activity </div>
-        <select name="activity" id="activity" @onchange="activity_select">
-            <option value="val1">Sedentary (office job)</option>
-            <option value="val2">Light Exercise (1-2 days/week)</option>
-            <option value="val3">Moderate Exercise (3-5 days/week)</option>
-            <option value="val4">Heavy Exercise (6-7 days/week)</option>
-            <option value="val5">Athlete (2x per day)</option>
-        </select>
-    </div>
-    <div class="fifth-row">
-        <div class="text_box_label">Body fat % </div>
-        <input type="text" name="body_fat" class="text_box_in" @onchange="validate_fat" placeholder="%"><label id="@label_bdf">@err_bdf </label>
-        <br>
-        <div class="text_box_label">(optional)</div>
-    </div>
-    <br />
-    <div class="sixth-row">
-        <div class="text_box_label"></div>
-        <button @onclick="() => Submit()">Submit</button>
-    </div>
-    <br />
-    <b @onclick="ShowDescription">Click here to learn more about the tool...</b>
-    <br />
-    <br />
-    @if (showTextR)
-    {
-        <div class="sticky_u_left">
-            <div class="res_box" @onclick="@(e => ShowMacro("c"))">
-                Cutting <br />
-                @cut kcal
-            </div>
-            <div class="res_box" @onclick="@(e => ShowMacro("m"))">
-                Maintanance <br />
-                @result kcal
-            </div>
-            <div class="res_box" @onclick="@(e => ShowMacro("b"))">
-                Bulking <br />
-                @bulk kcal
-            </div>
+@if (!showTextD)
+{
+    <div class="left_display">
+        <div class="result">
+            <p id="result">@result</p>
+        </div>
+        <div class="zero-row">
+            <div class="text_box_label">Gender </div>
+            @foreach (var item in new string[] { "Male", "Female" })
+            {
+                <label for="@item"> </label>
+                <input type="radio" name="gender" id="@item" value="@item" @onchange="gender_select" checked=@(GenderRadio.Equals(item, StringComparison.OrdinalIgnoreCase)) />
+                <label for="@item">@item</label>
+            }
+            <label id="@label_gender">@err_gender </label>
+        </div>
+        <div class="first-row">
+            <div class="text_box_label">Age </div>
+            <input type="text" name="age" class="text_box_in" @onchange="validate_age" placeholder="yr"><label id="@label_age">@err_age </label>
+        </div>
+        <div class="second-row">
+            <div class="text_box_label">Weight </div>
+            <input type="text" name="weight" class="text_box_in" @onchange="validate_weight" placeholder="kg"><label id="@label_wgh">@err_wgh </label>
+        </div>
+        <div class="third-row">
+            <div class="text_box_label">Height </div>
+            <input type="text" name="height" class="text_box_in" @onchange="validate_height" placeholder="cm"><label id="@label_hgt">@err_hgt </label>
+        </div>
+        <div class="fourth-row">
+            <div class="text_box_label">Activity </div>
+            <select name="activity" id="activity" @onchange="activity_select">
+                <option value="val1">Sedentary (office job)</option>
+                <option value="val2">Light Exercise (1-2 days/week)</option>
+                <option value="val3">Moderate Exercise (3-5 days/week)</option>
+                <option value="val4">Heavy Exercise (6-7 days/week)</option>
+                <option value="val5">Athlete (2x per day)</option>
+            </select>
+        </div>
+        <div class="fifth-row">
+            <div class="text_box_label">Body fat % </div>
+            <input type="text" name="body_fat" class="text_box_in" @onchange="validate_fat" placeholder="%"><label id="@label_bdf">@err_bdf </label>
+            <br>
+            <div class="text_box_label">(optional)</div>
         </div>
         <br />
-        <a>Example Macronutrients Split based on your requirements.</a>
+        <div class="sixth-row">
+            <div class="text_box_label"></div>
+            <button @onclick="() => Submit()">Submit</button>
+        </div>
         <br />
-        <br />
-        <div class="sticky_u_left">
-            <div class="res_box">
-                Low Carb<br /><br />
-                @(Math.Round((protein * 0.4) / 4)) g<div title="@(Math.Round(protein * 0.4)) kcal">Protein<sup>?</sup></div>
-                @(Math.Round((carbs * 0.2) / 4)) g<div title="@(Math.Round(carbs * 0.2)) kcal">Carbs<sup>?</sup></div>
-                @(Math.Round((fats * 0.4) / 9)) g <div title="@(Math.Round(fats * 0.4)) kcal">Fats<sup>?</sup></div>
+        @if (showTextR)
+        {
+            <div class="sticky_u_left">
+                <div class="res_box" @onclick="@(e => ShowMacro("c"))">
+                    Cutting <br />
+                    @cut kcal
+                </div>
+                <div class="res_box" @onclick="@(e => ShowMacro("m"))">
+                    Maintanance <br />
+                    @result kcal
+                </div>
+                <div class="res_box" @onclick="@(e => ShowMacro("b"))">
+                    Bulking <br />
+                    @bulk kcal
+                </div>
             </div>
-            <div class="res_box">
-                Mod Carb<br /><br />
-                @(Math.Round((protein * 0.3) / 4)) g<div title="@(Math.Round(protein * 0.3)) kcal">Protein<sup>?</sup></div>
-                @(Math.Round((carbs * 0.35) / 4)) g<div title="@(Math.Round(carbs * 0.35)) kcal">Carbs<sup>?</sup></div>
-                @(Math.Round((fats * 0.35) / 9)) g <div title="@(Math.Round(fats * 0.35)) kcal">Fats<sup>?</sup></div>
-            </div>
-            <div class="res_box">
-                High Carb<br /><br />
+            <br />
+            <a>Example Macronutrients Split based on your requirements.</a>
+            <br />
+            <br />
+            <div class="sticky_u_left">
+                <div class="res_box">
+                    Low Carb<br /><br />
+                    @(Math.Round((protein * 0.4) / 4)) g<div title="@(Math.Round(protein * 0.4)) kcal">Protein<sup>?</sup></div>
+                    @(Math.Round((carbs * 0.2) / 4)) g<div title="@(Math.Round(carbs * 0.2)) kcal">Carbs<sup>?</sup></div>
+                    @(Math.Round((fats * 0.4) / 9)) g <div title="@(Math.Round(fats * 0.4)) kcal">Fats<sup>?</sup></div>
+                </div>
+                <div class="res_box">
+                    Mod Carb<br /><br />
+                    @(Math.Round((protein * 0.3) / 4)) g<div title="@(Math.Round(protein * 0.3)) kcal">Protein<sup>?</sup></div>
+                    @(Math.Round((carbs * 0.35) / 4)) g<div title="@(Math.Round(carbs * 0.35)) kcal">Carbs<sup>?</sup></div>
+                    @(Math.Round((fats * 0.35) / 9)) g <div title="@(Math.Round(fats * 0.35)) kcal">Fats<sup>?</sup></div>
+                </div>
+                <div class="res_box">
+                    High Carb<br /><br />
                     @(Math.Round((protein * 0.3) / 4)) g<div title="@(Math.Round(protein * 0.3)) kcal">Protein<sup>?</sup></div>
                     @(Math.Round((carbs * 0.5) / 4)) g<div title="@(Math.Round(carbs * 0.5)) kcal">Carbs<sup>?</sup></div>
-                @(Math.Round((fats * 0.2) / 9)) g <div title="@(Math.Round(fats * 0.2)) kcal">Fats<sup>?</sup></div>
+                    @(Math.Round((fats * 0.2) / 9)) g <div title="@(Math.Round(fats * 0.2)) kcal">Fats<sup>?</sup></div>
+                </div>
             </div>
-        </div>
-    }
-</div>
+        }
+    </div>
+}
 @if (showTextD)
 {
-    <div class="sticky_left">
-    TDEE, or Total Daily Energy Expenditure, is a measure of how many calories a person needs to consume in order to maintain their current weight. It is calculated by taking into account a person’s basal metabolic rate (BMR), activity level, and any additional energy expenditure from physical activity.
-    <br />
-    <br />
-    Basal Metabolic Rate (BMR) is the amount of energy (calories) that a person needs to maintain basic bodily functions such as breathing, circulation, and digestion. It is calculated using the Harris-Benedict equation, which takes into account a person’s age, gender, height, and weight.
-    <br />
-    <br />
-    The Harris-Benedict equation for men is:<br />BMR = 66 + (13.7 x weight in kg) + (5 x height in cm) – (6.8 x age in years)
-    <br />
-    <br />
-    The Harris-Benedict equation for women is:<br />BMR = 655 + (9.6 x weight in kg) + (1.8 x height in cm) – (4.7 x age in years)
-    <br />
-    <br />
-    Once the BMR is calculated, it is multiplied by an activity factor to determine the total daily energy expenditure. The activity factor is based on a person’s activity level and takes into account any additional energy expenditure from physical activity.
-    <br />
-    <br />
-    The activity factor for sedentary people (little or no exercise) is 1.2<br />
-    The activity factor for lightly active people (light exercise/sports 1-3 days/week) is 1.375<br />
-    The activity factor for moderately active people (moderate exercise/sports 3-5 days/week) is 1.55<br />
-    The activity factor for very active people (hard exercise/sports 6-7 days a week) is 1.725<br />
-    The activity factor for extra active people (very hard exercise/sports & physical job or 2x training) is 1.9
-    <br />
-    <br />
-    Once the BMR and activity factor are calculated, the total daily energy expenditure can be determined. The formula for calculating TDEE is: TDEE = BMR x Activity Factor
-    <br />
-    <br />
-    For example, if a 30 year old woman who weighs 70 kg and is 1.7 meters tall has a sedentary lifestyle, her TDEE would be calculated as follows:
-    <br />
-    <br />
-    BMR = 655 + (9.6 x 70) + (1.8 x 170) – (4.7 x 30) = 1445.2
-    <br />
-    <br />
-    TDEE = 1445.2 x 1.2 = 1734.24 calories/day
-    <br />
-    <br />
-    Tdee is an important measure for anyone looking to maintain or change their weight. Knowing your TDEE can help you determine how many calories you need to consume in order to reach your goals.
-</div>
+    <div class="left_display">
+        TDEE, or Total Daily Energy Expenditure, is a measure of how many calories a person needs to consume in order to maintain their current weight. It is calculated by taking into account a person's basal metabolic rate (BMR), activity level, and any additional energy expenditure from physical activity.
+        <br />
+        <br />
+        Basal Metabolic Rate (BMR) is the amount of energy (calories) that a person needs to maintain basic bodily functions such as breathing, circulation, and digestion. It is calculated using the Harris-Benedict equation, which takes into account a person's age, gender, height, and weight.
+        <br />
+        <br />
+        The Harris-Benedict equation for men is:<br />BMR = 66 + (13.7 x weight in kg) + (5 x height in cm) – (6.8 x age in years)
+        <br />
+        <br />
+        The Harris-Benedict equation for women is:<br />BMR = 655 + (9.6 x weight in kg) + (1.8 x height in cm) – (4.7 x age in years)
+        <br />
+        <br />
+        Once the BMR is calculated, it is multiplied by an activity factor to determine the total daily energy expenditure. The activity factor is based on a person's activity level and takes into account any additional energy expenditure from physical activity.
+        <br />
+        <br />
+        The activity factor for sedentary people (little or no exercise) is 1.2<br />
+        The activity factor for lightly active people (light exercise/sports 1-3 days/week) is 1.375<br />
+        The activity factor for moderately active people (moderate exercise/sports 3-5 days/week) is 1.55<br />
+        The activity factor for very active people (hard exercise/sports 6-7 days a week) is 1.725<br />
+        The activity factor for extra active people (very hard exercise/sports & physical job or 2x training) is 1.9
+        <br />
+        <br />
+        Once the BMR and activity factor are calculated, the total daily energy expenditure can be determined. The formula for calculating TDEE is: TDEE = BMR x Activity Factor
+        <br />
+        <br />
+        For example, if a 30 year old woman who weighs 70 kg and is 1.7 meters tall has a sedentary lifestyle, her TDEE would be calculated as follows:
+        <br />
+        <br />
+        BMR = 655 + (9.6 x 70) + (1.8 x 170) – (4.7 x 30) = 1445.2
+        <br />
+        <br />
+        TDEE = 1445.2 x 1.2 = 1734.24 calories/day
+        <br />
+        <br />
+        Tdee is an important measure for anyone looking to maintain or change their weight. Knowing your TDEE can help you determine how many calories you need to consume in order to reach your goals.
+    </div>
 }
-
-
 
 @code {
     private bool showTextD = false;
     private bool showTextR = false;
     private double protein, carbs, fats;
 
-    private void ShowDescription()
-    {
-        showTextD = !showTextD;
-    }
+    private void ShowDescription() => showTextD = !showTextD;
+
     private void ShowAnnotation()
     {
         showTextR = !showTextR;
