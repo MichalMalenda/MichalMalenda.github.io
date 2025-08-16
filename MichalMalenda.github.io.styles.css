@@ -482,7 +482,6 @@ a[b-2nt8angtsa] {
         color: #212121;
         font-weight: bold;
     }
-/* /Shared/SubPage.razor.rz.scp.css */
 /* /Shared/Tile.razor.rz.scp.css */
 .search-bar[b-yyttsqt6cj] {
     width: 50%;
@@ -497,14 +496,11 @@ a[b-2nt8angtsa] {
     border: none;
     border-radius: 5px;
 }
-
-
 .gallery-container[b-yyttsqt6cj] {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
 }
-
 .tile[b-yyttsqt6cj] {
     width: 100px;
     height: 100px;
@@ -520,7 +516,6 @@ a[b-2nt8angtsa] {
     border-radius: 25%;
     border: none;
 }
-
     .tile:hover[b-yyttsqt6cj] {
         background-color: #A5C9FF;
         color: #212121;
