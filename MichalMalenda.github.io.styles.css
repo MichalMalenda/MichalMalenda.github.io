@@ -176,93 +176,221 @@ button[inherit-scope] {
     box-sizing: border-box;
     padding: 20px;
 }
+
+/* Title Styling - Clickable */
+h1[inherit-scope] {
+    text-align: center;
+    margin: 20px 0;
+}
+
+    /* Clickable title - only text area is clickable */
+    h1[style*="cursor: pointer"][inherit-scope] {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        position: relative;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+        h1[style*="cursor: pointer"]:hover[inherit-scope] {
+            color: #A5C9FF;
+            background-color: rgba(165, 201, 255, 0.1);
+        }
 /* /Pages/TDEE.razor.rz.scp.css */
-.display[inherit-scope] {
-    border: 1px solid black;
-}
+/* Main Layout Containers */
 .left_display[inherit-scope] {
-    border: 0px solid black;
-    left: 200px;
     width: 100%;
-    float: left;
-}
-.right_display[inherit-scope] {
-    border: 0px solid black;
-    position: static;
-    width: 55%;
-    float: right;
-}
-.sticky_left[inherit-scope] {
-    border: 0px solid black;
-    position: relative;
-    left: 400px;
-    width: 55%;
-}
-.sticky_u_left[inherit-scope] {
-    position: static;
-    left: 200px;
-    width: 300px;
+    margin: 0 auto;
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0 20px;
 }
-.res_box[inherit-scope] {
-    border: 1px solid #212121;
+
+/* Description Areas - Unified for both pages */
+.sticky_left[inherit-scope],
+.sticky_right[inherit-scope] {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+/* MinutesMaker Specific */
+.text_area_wrapper[inherit-scope] {
+    width: 50%;
+    max-width: 800px;
+    min-width: 200px;
+}
+
+#text_field_in[inherit-scope] {
+    width: 100%;
+    min-height: 150px;
+    max-height: 600px;
+    min-width: 300px;
+    max-width: 800px;
+    resize: both;
     border-radius: 15px;
-    left: 200px;
-    width: 95px;
-    text-align: center;
+    margin: 20px auto;
     background-color: black;
-}
-.mbox[inherit-scope] {
-    border: 1px solid #212121;
-    border-radius: 15px;
-    left: 200px;
-    width: 95px;
-    text-align: center;
-    background-color: black;
-}
-.bbox[inherit-scope] {
-    border: 1px solid #212121;
-    border-radius: 15px;
-    left: 200px;
-    width: 95px;
-    text-align: center;
-    background-color: black;
-}
-#error[inherit-scope] {
-    color:darkred;
-}
-#noterror[inherit-scope] {
-    color: #A5FFC9;
-}
-#result[inherit-scope] {
-    border: none;
-}
-.result[inherit-scope] {
-    border: none;
-}
-#col[inherit-scope]{
-    width:200px;
-}
-#activity[inherit-scope] {
-    width: 175px;
-    height: 25px;
-    background-color: black;
-    box-shadow: none;
     color: #e5e5e5;
+    border: none;
+    outline: none;
+    box-sizing: border-box;
+    padding: 10px;
+    font-family: inherit;
+    font-size: 1rem;
+    text-align: left;
+    line-height: 1.4;
 }
-.text_box_in[inherit-scope] {
-    width: 40px;
-    height: 25px;
-    background-color: black;
-    box-shadow: none;
-    color: #e5e5e5;
+
+.button_wrapper[inherit-scope] {
+    display: flex;
+    justify-content: center;
+    width: 50%;
+    margin-top: 10px;
 }
+
+/* TDEE Calculator Form Layout */
+.zero-row[inherit-scope],
+.first-row[inherit-scope],
+.second-row[inherit-scope],
+.third-row[inherit-scope],
+.fourth-row[inherit-scope],
+.fifth-row[inherit-scope],
+.sixth-row[inherit-scope] {
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    /*
+        display: flex;
+        margin: 10px 0;
+        gap: 10px;
+    */
+}
+
 .text_box_label[inherit-scope] {
     width: 100px;
     height: 25px;
     text-align: right;
     display: inline-block;
+    margin-right: 10px;
 }
+
+/* Form Inputs - Unified Dark Theme */
+.text_box_in[inherit-scope] {
+    width: 80px;
+    height: 25px;
+    background-color: black;
+    border: 1px solid #333;
+    border-radius: 5px;
+    box-shadow: none;
+    color: #e5e5e5;
+    padding: 0 8px;
+    font-family: inherit;
+}
+
+    .text_box_in:focus[inherit-scope] {
+        outline: none;
+        border-color: #A5C9FF;
+    }
+
+#activity[inherit-scope] {
+    width: 200px;
+    height: 25px;
+    background-color: black;
+    border: 1px solid #333;
+    border-radius: 5px;
+    box-shadow: none;
+    color: #e5e5e5;
+    padding: 0 8px;
+    font-family: inherit;
+}
+
+    #activity:focus[inherit-scope] {
+        outline: none;
+        border-color: #A5C9FF;
+    }
+
+/* Radio Button Styling */
+input[type="radio"][inherit-scope] {
+    margin: 0 5px;
+    accent-color: #A5C9FF;
+}
+
+/* Results Display */
+.result[inherit-scope] {
+    border: none;
+    text-align: center;
+    font-weight: bold;
+    /*
+        margin: 20px 0;
+        font-size: 1.2rem;
+    */
+}
+
+#result[inherit-scope] {
+    border: none;
+    color: #A5C9FF;
+}
+
+/* Results Boxes Layout */
+.sticky_u_left[inherit-scope] {
+    position: static;
+    width: 100%;
+    max-width: 600px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.res_box[inherit-scope],
+.mbox[inherit-scope],
+.bbox[inherit-scope] {
+    border: 1px solid #333;
+    border-radius: 15px;
+    width: 120px;
+    min-height: 60px;
+    text-align: center;
+    background-color: black;
+    color: #e5e5e5;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+    .res_box:hover[inherit-scope],
+    .mbox:hover[inherit-scope],
+    .bbox:hover[inherit-scope] {
+        border-color: #A5C9FF;
+        background-color: #111;
+    }
+
+/* Validation Messages */
+#error[inherit-scope] {
+    color: darkred;
+    font-size: 0.9rem;
+    margin-left: 5px;
+}
+
+#noterror[inherit-scope] {
+    color: #A5FFC9;
+    font-size: 0.9rem;
+    margin-left: 5px;
+}
+
+/* Button Styling - Unified */
 button[inherit-scope] {
     position: relative;
     display: inline-block;
@@ -272,14 +400,17 @@ button[inherit-scope] {
     background-color: #A5C9FF;
     border: solid 1px transparent;
     color: #212121;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 300;
     cursor: pointer;
-    transition: all .1s ease-in-out;
+    transition: all 0.1s ease-in-out;
+    margin: 10px;
 }
+
     button:hover[inherit-scope] {
         background-color: transparent;
-        transition: all .1s ease-in-out;
+        border-color: #A5C9FF;
+        transition: all 0.1s ease-in-out;
         color: #A5C9FF;
     }
 
@@ -287,157 +418,97 @@ button[inherit-scope] {
         background-color: #A5C9FF;
         color: #212121;
     }
-/* /Shared/MainLayout.razor.rz.scp.css */
-.page[b-2nt8angtsa] {
-    position: relative;
-    display: flex;
-    flex-direction: column;
+
+/* Title Styling - Clickable */
+h1[inherit-scope] {
+    text-align: center;
+    margin: 20px 0;
 }
 
-.main[b-2nt8angtsa] {
-    flex: 1;
-}
-
-.sidebar[b-2nt8angtsa] {
-    /*background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);*/
-    background-color: #212121;
-}
-
-a[b-2nt8angtsa] {
-    color: white;
-    text-decoration: none;
-}
-
-    a:visited[b-2nt8angtsa] {
-        color: white;
+    /* Clickable title - only text area is clickable */
+    h1[style*="cursor: pointer"][inherit-scope] {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        position: relative;
+        left: 50%;
+        transform: translateX(-50%);
     }
 
-    a:hover[b-2nt8angtsa] {
-        text-decoration: none;
+        h1[style*="cursor: pointer"]:hover[inherit-scope] {
+            color: #A5C9FF;
+            background-color: rgba(165, 201, 255, 0.1);
+        }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .left_display[inherit-scope] {
+        padding: 0 10px;
     }
 
-    a:active[b-2nt8angtsa] {
-        text-decoration: none;
+    .text_area_wrapper[inherit-scope],
+    .button_wrapper[inherit-scope] {
+        width: 90%;
     }
 
-.top-row[b-2nt8angtsa] {
-    background-color: #212121;
-    border-bottom: 1px solid #212121;
-    justify-content: flex-end;
-    height: 3.5rem;
-    display: flex;
-    align-items: center;
-    color:white;
-}
-
-    .top-row[b-2nt8angtsa]  a, .top-row .btn-link[b-2nt8angtsa] {
-        white-space: nowrap;
-        margin-left: 1.5rem;
+    .sticky_left[inherit-scope],
+    .sticky_right[inherit-scope] {
+        padding: 15px;
     }
 
-    .top-row a:first-child[b-2nt8angtsa] {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-@media (max-width: 640.98px) {
-    .top-row:not(.auth)[b-2nt8angtsa] {
-        display: none;
-    }
-
-    .top-row.auth[b-2nt8angtsa] {
-        justify-content: space-between;
-    }
-
-    .top-row a[b-2nt8angtsa], .top-row .btn-link[b-2nt8angtsa] {
-        margin-left: 0;
-    }
-}
-
-@media (min-width: 641px) {
-    .page[b-2nt8angtsa] {
-        flex-direction: row;
-    }
-
-    .sidebar[b-2nt8angtsa] {
-        width: 250px;
-        height: 100vh;
-        position: sticky;
-        top: 0;
-    }
-
-    .top-row[b-2nt8angtsa] {
-        position: static;
-        top: 0;
-        z-index: 1;
-    }
-
-    .main > div[b-2nt8angtsa] {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
-    }
-}
-/* /Shared/NavMenu.razor.rz.scp.css */
-.navbar-toggler[b-780e80izlp] {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.top-row[b-780e80izlp] {
-    height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
-}
-
-.navbar-brand[b-780e80izlp] {
-    font-size: 1.1rem;
-}
-
-.bi[b-780e80izlp] {
-    width: 2rem;
-    font-size: 1.1rem;
-    vertical-align: text-top;
-    top: -2px;
-}
-
-.nav-item[b-780e80izlp] {
-    font-size: 0.9rem;
-    padding-bottom: 0.5rem;
-}
-
-    .nav-item:first-of-type[b-780e80izlp] {
-        padding-top: 1rem;
-    }
-
-    .nav-item:last-of-type[b-780e80izlp] {
-        padding-bottom: 1rem;
-    }
-
-    .nav-item[b-780e80izlp]  a {
-        color: #d7d7d7;
-        border-radius: 4px;
-        height: 3rem;
-        display: flex;
+    .sticky_u_left[inherit-scope] {
+        flex-direction: column;
         align-items: center;
-        line-height: 3rem;
     }
 
-.nav-item[b-780e80izlp]  a.active {
-    background-color: rgba(255,255,255,0.25);
-    color: white;
-}
-
-.nav-item[b-780e80izlp]  a:hover {
-    background-color: rgba(255,255,255,0.1);
-    color: white;
-}
-
-@media (min-width: 641px) {
-    .navbar-toggler[b-780e80izlp] {
-        display: none;
+    .res_box[inherit-scope],
+    .mbox[inherit-scope],
+    .bbox[inherit-scope] {
+        width: 200px;
+        margin: 5px 0;
     }
 
-    .collapse[b-780e80izlp] {
-        /* Never collapse the sidebar for wide screens */
-        display: block;
+    .zero-row[inherit-scope],
+    .first-row[inherit-scope],
+    .second-row[inherit-scope],
+    .third-row[inherit-scope],
+    .fourth-row[inherit-scope],
+    .fifth-row[inherit-scope],
+    .sixth-row[inherit-scope] {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .text_box_label[inherit-scope] {
+        text-align: center;
+        margin-bottom: 5px;
+    }
+
+    #text_field_in[inherit-scope] {
+        min-width: 250px;
+    }
+}
+
+@media (max-width: 480px) {
+    .text_area_wrapper[inherit-scope],
+    .button_wrapper[inherit-scope] {
+        width: 95%;
+    }
+
+    #text_field_in[inherit-scope] {
+        min-width: 200px;
+    }
+
+    .res_box[inherit-scope],
+    .mbox[inherit-scope],
+    .bbox[inherit-scope] {
+        width: 150px;
+    }
+
+    button[inherit-scope] {
+        width: 90px;
+        font-size: 14px;
     }
 }
 /* /Shared/SearchBar.razor.rz.scp.css */

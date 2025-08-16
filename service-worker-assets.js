@@ -125,7 +125,7 @@
       "url": "_framework\/icudt_no_CJK.dat"
     },
     {
-      "hash": "sha256-PRks9rhEyTVzBD2MkXD52pX9RGfrklrLsxnRgH5F6WI=",
+      "hash": "sha256-JJJci7MS6eHY04+nBYHc\/tPzstmSn+BF1I\/1HtTQxHQ=",
       "url": "_framework\/blazor.boot.json"
     },
     {
@@ -137,7 +137,7 @@
       "url": "_framework\/Flurl.wasm"
     },
     {
-      "hash": "sha256-L9Skwoi+0OOF0prLNtK1NnHnqsIXCTaZZ2IoPWdQk7k=",
+      "hash": "sha256-8578osGyGEKf9Myw2\/zCLnpTeD87MAEQr\/3eRh6mSFc=",
       "url": "_framework\/MichalMalenda.github.io.wasm"
     },
     {
@@ -409,7 +409,7 @@
       "url": "_framework\/System.Xml.Linq.wasm"
     },
     {
-      "hash": "sha256-EOpoEkw8wTRYiYT0VfCeLp3MS+Pq\/M5H3HHDSTxuqzE=",
+      "hash": "sha256-FVMW4jWhPGxaMv75AiQ4hGdIRsUqzQuLcW1H37USPWg=",
       "url": "MichalMalenda.github.io.styles.css"
     },
     {
@@ -465,5 +465,5 @@
       "url": "_content\/Syncfusion.Blazor.Spinner\/scripts\/spinner.min.js"
     }
   ],
-  "version": "5RM2D2xT"
+  "version": "6xuySZ9Y"
 };
