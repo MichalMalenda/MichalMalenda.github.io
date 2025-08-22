@@ -15,14 +15,12 @@
 @code
 {
     private IJSObjectReference? jsModule;
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             try
             {
-                // Initialize the centipede after the component has rendered
                 await JSRuntime.InvokeVoidAsync("initializeCentipede");
             }
             catch (Exception ex)
@@ -36,7 +34,6 @@
     {
         try
         {
-            // Clean up JavaScript resources
             await JSRuntime.InvokeVoidAsync("cleanupCentipede");
         }
         catch (Exception ex)
@@ -53,14 +50,14 @@
 
 <script>
     let centipedeInstance = null;
+    this.mouseVelocity = { x: 0, y: 0 };
+    this.lastMousePos = { x: 0, y: 0 };
+    this.lastMouseTime = performance.now();
 
     window.initializeCentipede = () => {
-        // Clean up any existing instance
         if (centipedeInstance) {
             centipedeInstance.cleanup();
         }
-
-        // Small delay to ensure DOM is ready
         setTimeout(() => {
             centipedeInstance = new AsciiCentipede();
         }, 100);
@@ -78,7 +75,7 @@
             this.playground = document.getElementById('playground');
             this.cursor = document.getElementById('cursor');
             this.segments = [];
-            this.length = 12;
+            this.length = 31; //number of segments
             this.segmentWidth = 5; // Number of characters per segment
             this.position = { x: window.innerWidth / 2, y: window.innerHeight / 2, z: 0 };
             this.velocity = { x: 0, y: 0, z: 0 };
@@ -91,6 +88,14 @@
             this.animationId = null;
             this.isDestroyed = false;
 
+            //mouse tracking
+            this.mousePos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+            this.lastMousePos = { x: this.mousePos.x, y: this.mousePos.y };
+            this.lastMouseTime = performance.now();
+            this.mouseVelocity = { x: 0, y: 0 }; // px/ms
+            this.mouseSpeedEMA = 0;// smoothed scalar speed (px/ms)
+
+
             // 3D rotation angles for each segment
             this.segmentRotations = new Array(this.length).fill(0);
             this.rotationSpeeds = [];
@@ -101,16 +106,18 @@
             }
 
             this.asciiPatterns = [
-                // Geometric patterns
                 ['◊◈◇◉●', '○◦·∘◯', '◐◑◒◓◔', '◕◖◗◘◙', '◚◛◜◝◞'],
-                // Block patterns
                 ['▓▒░█▄', '▀■□▪▫', '◼◻▬▭▮', '▯▰▱▲▴', '▵▶▷▸▹'],
-                // Star patterns
                 ['※✱✲✳✴', '✵✶✷✸✹', '✺✻✼✽✾', '✿❀❁❂❃', '❄❅❆❇❈'],
-                // Complex patterns
                 ['◆◇◈◉◊', '●◎◐◑◒', '◓◔◕◖◗', '◘◙◚◛◜', '◝◞◟◠◡'],
-                // Organic patterns
-                ['⚬⚭⚮⚯⚰', '⚱⚲⚳⚴⚵', '⚶⚷⚸⚹⚺', '⚻⚼⚽⚾⚿', '⛀⛁⛂⛃⛄']
+                ['⚬⚭⚮⚯⚰', '⚱⚲⚳⚴⚵', '⚶⚷⚸⚹⚺', '⚻⚼⚽⚾⚿', '⛀⛁⛂⛃⛄'],
+                ['♠♣♥♦★', '☀☁☂☃☄', '☉☊☋☌☍', '☽☾☿♀♂', '♈♉♊♋♌'],
+                ['⊙⊚⊛⊜⊝', '◍◎◉◌◍', '⚪⚫⚽⚾⛳', '⦿⦾⦻⦺⦹', '⦶⦷⦸⦵⦴'],
+                ['▤▥▦▧▨', '▩▪▫▭▮', '▯▰▱▲△', '◰◱◲◳◴', '◵◶◷◸◹'],
+                ['⌁⌂⌃⌄⌅', '⌆⌇⌈⌉⌊', '⌋⌌⌍⌎⌏', '⎀⎁⎂⎃⎄', '⎅⎆⎇⎈⎉'],
+                ['☌☍☊☋☇', '☈☉☊☋☌', '☍☎☏☑☒', '☓☔☕☖☗', '☘☙☚☛☜'],
+                ['╔╗╚╝╠╣', '═║╦╩╬', '┌┐└┘├┤', '─┼┬┴┽', '▌▐▔▕▖']
+
             ];
 
             this.currentPattern = 0;
@@ -216,8 +223,28 @@
 
         bindEvents() {
             this.mouseMoveHandler = (e) => {
+                const now = performance.now();
+                const dt = Math.max(1, now - this.lastMouseTime); // ms
+
+                const dx = e.clientX - this.lastMousePos.x;
+                const dy = e.clientY - this.lastMousePos.y;
+                const instSpeed = Math.hypot(dx, dy) / dt; // px/ms
+
+                // smooth the speed to avoid jitter
+                const alpha = 0.3;
+                this.mouseSpeedEMA += alpha * (instSpeed - this.mouseSpeedEMA);
+
+                // keep vector too (can be useful for effects)
+                this.mouseVelocity.x = dx / dt;
+                this.mouseVelocity.y = dy / dt;
+
+                this.lastMousePos.x = e.clientX;
+                this.lastMousePos.y = e.clientY;
+                this.lastMouseTime = now;
+
                 this.mousePos.x = e.clientX;
                 this.mousePos.y = e.clientY;
+
                 if (this.cursor) {
                     this.cursor.style.left = e.clientX - 10 + 'px';
                     this.cursor.style.top = e.clientY - 10 + 'px';
@@ -347,9 +374,11 @@
         updateMovement() {
             if (this.isDestroyed) return;
 
+            // time/energy housekeeping
             this.time += 0.05;
             this.energy = Math.max(0, this.energy - 0.02);
 
+            // periodic pattern change
             this.patternTimer++;
             if (this.patternTimer > 300) {
                 this.patternTimer = 0;
@@ -357,53 +386,83 @@
                 this.updateSegmentChars();
             }
 
-            if (this.state === 'following' && this.isMouseDown && this.segments.length > 0) {
-                const dx = this.mousePos.x - this.segments[0].x;
-                const dy = this.mousePos.y - this.segments[0].y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                if (distance > 50) {
-                    this.velocity.x += (dx / distance) * 0.5;
-                    this.velocity.y += (dy / distance) * 0.5;
-                }
-            } else if (this.state === 'wandering') {
-                this.velocity.x += (Math.random() - 0.5) * 0.3;
-                this.velocity.y += (Math.random() - 0.5) * 0.3;
-
-                this.velocity.x += Math.sin(this.time * 0.5) * 0.2;
-                this.velocity.y += Math.cos(this.time * 0.3) * 0.2;
-            }
-
-            const energyMultiplier = (this.energy / 100) * 0.5 + 0.5;
-            this.velocity.x *= energyMultiplier;
-            this.velocity.y *= energyMultiplier;
-
-            this.velocity.x *= 0.95;
-            this.velocity.y *= 0.95;
-
-            //const maxSpeed = this.state === 'boosting' ? 8 : 4;
-            const maxSpeed = 4.8;
-            const speed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
-            if (speed > maxSpeed) {
-                this.velocity.x = (this.velocity.x / speed) * maxSpeed;
-                this.velocity.y = (this.velocity.y / speed) * maxSpeed;
-            }
-
+            // ---- FOLLOW / WANDER LOGIC ----
             if (this.segments.length > 0) {
-                if (this.segments[0].x <= 0 || this.segments[0].x >= window.innerWidth) {
-                    this.velocity.x *= -0.8;
-                }
-                if (this.segments[0].y <= 0 || this.segments[0].y >= window.innerHeight) {
-                    this.velocity.y *= -0.8;
+                const head = this.segments[0];
+
+                if (this.state === 'following' && this.isMouseDown) {
+                    // vector from head to mouse
+                    const dx = this.mousePos.x - head.x;
+                    const dy = this.mousePos.y - head.y;
+                    const dist = Math.hypot(dx, dy) || 1;
+
+                    // desired direction
+                    const dirX = dx / dist;
+                    const dirY = dy / dist;
+
+                    // convert mouse speed (px/ms) to “px/frame” scale
+                    // 16 ~ typical ms/frame; tune kMouse, kBase to taste
+                    const kMouse = 16 * 1.0;   // sensitivity to mouse speed
+                    const kBase  = 1.4;        // base minimum speed (20% faster than 1.2-ish)
+                    let desiredSpeed = kBase + kMouse * this.mouseSpeedEMA;
+
+                    // near the cursor: taper speed so we don't overshoot
+                    const deadzone = 30;
+                    if (dist < deadzone) {
+                        desiredSpeed *= (dist / deadzone);
+                    }
+
+                    // cap based on how wild mouse moves can be
+                    const maxSpeed = Math.max(3.0, Math.min(6.0, desiredSpeed * 1.5));
+                    desiredSpeed = Math.min(desiredSpeed, maxSpeed);
+
+                    // target velocity toward the cursor at the chosen speed
+                    const vTargetX = dirX * desiredSpeed;
+                    const vTargetY = dirY * desiredSpeed;
+
+                    // blend current velocity toward target (steering)
+                    const responsiveness = 0.22; // 0..1 higher = snappier
+                    this.velocity.x += (vTargetX - this.velocity.x) * responsiveness;
+                    this.velocity.y += (vTargetY - this.velocity.y) * responsiveness;
+
+                } else {
+                    // wandering (keep your faster-by-20% feel)
+                    this.velocity.x += (Math.random() - 0.5) * 0.36;
+                    this.velocity.y += (Math.random() - 0.5) * 0.36;
+                    this.velocity.x += Math.sin(this.time * 0.5) * 0.24;
+                    this.velocity.y += Math.cos(this.time * 0.3) * 0.24;
                 }
 
-                this.segments[0].targetX += this.velocity.x;
-                this.segments[0].targetY += this.velocity.y;
+                // energy influence & damping
+                const energyMultiplier = (this.energy / 100) * 1 + 0.5; // was *0.5
+                this.velocity.x *= energyMultiplier;
+                this.velocity.y *= energyMultiplier;
 
-                this.segments[0].targetX = Math.max(20, Math.min(window.innerWidth - 20, this.segments[0].targetX));
-                this.segments[0].targetY = Math.max(20, Math.min(window.innerHeight - 20, this.segments[0].targetY));
+                this.velocity.x *= 0.95;
+                this.velocity.y *= 0.95;
+
+                // final clamping (keeps things sane if mouse flicks)
+                const vMag = Math.hypot(this.velocity.x, this.velocity.y);
+                const hardMax = 6.0; // slightly above the 20% boosted cap
+                if (vMag > hardMax) {
+                    this.velocity.x = (this.velocity.x / vMag) * hardMax;
+                    this.velocity.y = (this.velocity.y / vMag) * hardMax;
+                }
+
+                // advance head target
+                head.targetX += this.velocity.x;
+                head.targetY += this.velocity.y;
+
+                // keep inside viewport
+                head.targetX = Math.max(20, Math.min(window.innerWidth  - 20, head.targetX));
+                head.targetY = Math.max(20, Math.min(window.innerHeight - 20, head.targetY));
+
+                // bounce if we hit edges
+                if (head.x <= 0 || head.x >= window.innerWidth)  this.velocity.x *= -0.8;
+                if (head.y <= 0 || head.y >= window.innerHeight) this.velocity.y *= -0.8;
             }
         }
+
 
         updateSegments() {
             if (this.isDestroyed || this.segments.length === 0) return;
@@ -443,14 +502,12 @@
                     ////const speed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
                     ////this.segmentRotations[index] += speed * 0.05;
 
-                    // Shared base rotation (50% faster now)
+                    // Shared base rotation
                     const baseRotationSpeed = 0.05 * 1.5 * (this.energy / 50 + 0.5);
-
-                    const speed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
+                    const speed = Math.hypot(this.velocity.x, this.velocity.y);
                     const movementBoost = speed * 0.03 * 1.5;
-
-                    // Linked smooth rotation with phase offset
                     this.segmentRotations[index] = this.time * (baseRotationSpeed + movementBoost) + index * 0.3;
+
 
                     // Calculate 3D transform
                     const zOffset = Math.sin(this.time + index * 0.2) * 5;
