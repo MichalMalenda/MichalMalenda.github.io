@@ -1,0 +1,524 @@
+﻿@page "/companion"
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+
+<div id="playground">
+    <div id="cursor"></div>
+    <div id="info">
+        <div>3D ASCII Centipede Companion</div>
+        <div>Click: Feed • Hold: Attract</div>
+        <div>State: <span id="state">Wandering</span></div>
+        <div>Energy: <span id="energy">100</span>%</div>
+    </div>
+</div>
+
+@code
+{
+    private IJSObjectReference? jsModule;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Initialize the centipede after the component has rendered
+                await JSRuntime.InvokeVoidAsync("initializeCentipede");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error initializing centipede: {ex.Message}");
+            }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            // Clean up JavaScript resources
+            await JSRuntime.InvokeVoidAsync("cleanupCentipede");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during cleanup: {ex.Message}");
+        }
+
+        if (jsModule != null)
+        {
+            await jsModule.DisposeAsync();
+        }
+    }
+}
+
+<script>
+    let centipedeInstance = null;
+
+    window.initializeCentipede = () => {
+        // Clean up any existing instance
+        if (centipedeInstance) {
+            centipedeInstance.cleanup();
+        }
+
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+            centipedeInstance = new AsciiCentipede();
+        }, 100);
+    };
+
+    window.cleanupCentipede = () => {
+        if (centipedeInstance) {
+            centipedeInstance.cleanup();
+            centipedeInstance = null;
+        }
+    };
+
+    class AsciiCentipede {
+        constructor() {
+            this.playground = document.getElementById('playground');
+            this.cursor = document.getElementById('cursor');
+            this.segments = [];
+            this.length = 12;
+            this.segmentWidth = 5; // Number of characters per segment
+            this.position = { x: window.innerWidth / 2, y: window.innerHeight / 2, z: 0 };
+            this.velocity = { x: 0, y: 0, z: 0 };
+            this.targetPosition = null;
+            this.state = 'wandering';
+            this.energy = 100;
+            this.time = 0;
+            this.mousePos = { x: 0, y: 0 };
+            this.isMouseDown = false;
+            this.animationId = null;
+            this.isDestroyed = false;
+
+            // 3D rotation angles for each segment
+            this.segmentRotations = new Array(this.length).fill(0);
+            this.rotationSpeeds = [];
+
+            // Initialize rotation speeds for each segment
+            for (let i = 0; i < this.length; i++) {
+                this.rotationSpeeds[i] = (Math.random() - 0.5) * 0.1;
+            }
+
+            this.asciiPatterns = [
+                // Geometric patterns
+                ['◊◈◇◉●', '○◦·∘◯', '◐◑◒◓◔', '◕◖◗◘◙', '◚◛◜◝◞'],
+                // Block patterns
+                ['▓▒░█▄', '▀■□▪▫', '◼◻▬▭▮', '▯▰▱▲▴', '▵▶▷▸▹'],
+                // Star patterns
+                ['※✱✲✳✴', '✵✶✷✸✹', '✺✻✼✽✾', '✿❀❁❂❃', '❄❅❆❇❈'],
+                // Complex patterns
+                ['◆◇◈◉◊', '●◎◐◑◒', '◓◔◕◖◗', '◘◙◚◛◜', '◝◞◟◠◡'],
+                // Organic patterns
+                ['⚬⚭⚮⚯⚰', '⚱⚲⚳⚴⚵', '⚶⚷⚸⚹⚺', '⚻⚼⚽⚾⚿', '⛀⛁⛂⛃⛄']
+            ];
+
+            this.currentPattern = 0;
+            this.patternTimer = 0;
+
+            if (this.playground) {
+                this.init();
+                this.bindEvents();
+                this.animate();
+            }
+        }
+
+        init() {
+            if (!this.playground) return;
+
+            // Clear any existing segments
+            const existingSegments = this.playground.querySelectorAll('.centipede-segment');
+            existingSegments.forEach(segment => segment.remove());
+
+            // Get current viewport dimensions
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+
+            // Set initial position to center of screen
+            this.position.x = viewportWidth / 2;
+            this.position.y = viewportHeight / 2;
+
+            console.log(`Initializing centipede at: ${this.position.x}, ${this.position.y}`);
+            console.log(`Viewport: ${viewportWidth} x ${viewportHeight}`);
+
+            // Create centipede segments
+            for (let i = 0; i < this.length; i++) {
+                const segment = document.createElement('div');
+                segment.className = 'centipede-segment';
+                if (i === 0) segment.classList.add('head');
+                if (i === this.length - 1) segment.classList.add('tail');
+
+                // Force inline styles to override any Blazor CSS conflicts
+                segment.style.cssText = `
+                    position: absolute !important;
+                    font-family: 'Consolas', monospace !important;
+                    font-size: ${i === 0 ? '20px' : i === this.length - 1 ? '12px' : '16px'} !important;
+                    font-weight: bold !important;
+                    color: ${i === 0 ? '#333' : i === this.length - 1 ? '#e5e5e5' : '#e5e5e5'} !important;
+                    text-shadow: 0 0 10px currentColor, 0 0 20px currentColor !important;
+                    user-select: none !important;
+                    z-index: ${20 - i} !important;
+                    width: auto !important;
+                    height: auto !important;
+                    display: inline-block !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    border: none !important;
+                    background: transparent !important;
+                    letter-spacing: ${i === 0 ? '2px' : i === this.length - 1 ? '1px' : '3px'} !important;
+                    transform-origin: center center !important;
+                    transition: transform 0.1s ease-out !important;
+                `;
+
+                const initialX = this.position.x - i * 25;
+                const initialY = this.position.y + Math.sin(i * 0.5) * 10;
+
+                segment.textContent = this.getSegmentChar(i);
+                segment.style.left = initialX + 'px';
+                segment.style.top = initialY + 'px';
+
+                console.log(`Segment ${i}: ${segment.textContent} at (${initialX}, ${initialY})`);
+
+                this.playground.appendChild(segment);
+                this.segments.push({
+                    element: segment,
+                    x: initialX,
+                    y: initialY,
+                    z: 0,
+                    targetX: initialX,
+                    targetY: initialY
+                });
+            }
+
+            console.log(`Created ${this.segments.length} segments`);
+        }
+
+        getSegmentChar(index) {
+            const pattern = this.asciiPatterns[this.currentPattern];
+            const rotationIndex = Math.floor(this.segmentRotations[index]) % pattern.length;
+            const segmentPattern = pattern[rotationIndex < 0 ? pattern.length + rotationIndex : rotationIndex];
+
+            if (index === 0) {
+                // Head - show direction with arrow-like pattern
+                const headPatterns = ['►►►►►', '▶▶▶▶▶', '»»»»»', '→→→→→', '⟩⟩⟩⟩⟩'];
+                const headIndex = Math.floor(this.segmentRotations[index] / 2) % headPatterns.length;
+                return headPatterns[headIndex < 0 ? headPatterns.length + headIndex : headIndex];
+            } else if (index === this.length - 1) {
+                // Tail - smaller, fading pattern
+                const tailPatterns = ['◦◦◦', '··', '∘', '○', '●'];
+                const tailIndex = Math.floor(this.segmentRotations[index] / 3) % tailPatterns.length;
+                return tailPatterns[tailIndex < 0 ? tailPatterns.length + tailIndex : tailIndex];
+            } else {
+                // Body segments - full 3D screw effect
+                return segmentPattern;
+            }
+        }
+
+        bindEvents() {
+            this.mouseMoveHandler = (e) => {
+                this.mousePos.x = e.clientX;
+                this.mousePos.y = e.clientY;
+                if (this.cursor) {
+                    this.cursor.style.left = e.clientX - 10 + 'px';
+                    this.cursor.style.top = e.clientY - 10 + 'px';
+                }
+            };
+
+            this.mouseDownHandler = (e) => {
+                this.isMouseDown = true;
+                this.feed(e.clientX, e.clientY);
+                this.setState('following');
+            };
+
+            this.mouseUpHandler = () => {
+                this.isMouseDown = false;
+                setTimeout(() => {
+                    if (!this.isMouseDown) {
+                        this.setState('wandering');
+                    }
+                }, 1000);
+            };
+
+            //this.keyDownHandler = (e) => {
+            //    if (e.code === 'Space') {
+            //        e.preventDefault();
+            //        this.boost();
+            //    }
+            //};
+
+            document.addEventListener('mousemove', this.mouseMoveHandler);
+            document.addEventListener('mousedown', this.mouseDownHandler);
+            document.addEventListener('mouseup', this.mouseUpHandler);
+            //document.addEventListener('keydown', this.keyDownHandler);
+        }
+
+        setState(newState) {
+            this.state = newState;
+            const stateElement = document.getElementById('state');
+            if (stateElement) {
+                stateElement.textContent = this.capitalizeFirst(newState);
+            }
+        }
+
+        capitalizeFirst(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        feed(x, y) {
+            this.energy = Math.min(100, this.energy + 10);
+            this.createParticles(x, y, '♥');
+            this.setState('eating');
+            setTimeout(() => {
+                if (!this.isMouseDown) this.setState('wandering');
+            }, 500);
+        }
+
+        //boost() {
+        //    if (this.energy >= 20) {
+        //        this.energy -= 20;
+        //        this.setState('boosting');
+        //        this.velocity.x *= 2;
+        //        this.velocity.y *= 2;
+        //
+        //        // Boost rotation speeds during boost
+        //        this.rotationSpeeds = this.rotationSpeeds.map(speed => speed * 3);
+        //
+        //           this.evolve();
+        //    setTimeout(() => {
+        //             this.setState('wandering');
+        //           // Restore normal rotation speeds
+        //          this.rotationSpeeds = this.rotationSpeeds.map(speed => speed / 3);
+        //     }, 1000);
+        //}
+        //}
+
+        evolve() {
+            this.currentPattern = (this.currentPattern + 1) % this.asciiPatterns.length;
+
+            // Randomize rotation speeds when evolving
+            for (let i = 0; i < this.length; i++) {
+                this.rotationSpeeds[i] = (Math.random() - 0.5) * 0.15;
+            }
+
+            this.updateSegmentChars();
+            if (this.segments.length > 0) {
+                this.createParticles(this.segments[0].x, this.segments[0].y, '✨');
+
+                // Create evolution burst effect
+                for (let i = 0; i < this.segments.length; i++) {
+                    setTimeout(() => {
+                        this.createParticles(
+                            this.segments[i].x + (Math.random() - 0.5) * 30,
+                            this.segments[i].y + (Math.random() - 0.5) * 30,
+                            ['⚡', '✨', '💫', '⭐'][Math.floor(Math.random() * 4)]
+                        );
+                    }, i * 100);
+                }
+            }
+        }
+
+        updateSegmentChars() {
+            this.segments.forEach((segment, index) => {
+                if (segment.element) {
+                    segment.element.textContent = this.getSegmentChar(index);
+                }
+            });
+        }
+
+        createParticles(x, y, char) {
+            if (!this.playground) return;
+
+            for (let i = 0; i < 5; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.textContent = char;
+                particle.style.left = (x + (Math.random() - 0.5) * 50) + 'px';
+                particle.style.top = (y + (Math.random() - 0.5) * 50) + 'px';
+                this.playground.appendChild(particle);
+
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.remove();
+                    }
+                }, 3000);
+            }
+        }
+
+        updateMovement() {
+            if (this.isDestroyed) return;
+
+            this.time += 0.05;
+            this.energy = Math.max(0, this.energy - 0.02);
+
+            this.patternTimer++;
+            if (this.patternTimer > 300) {
+                this.patternTimer = 0;
+                this.currentPattern = (this.currentPattern + 1) % this.asciiPatterns.length;
+                this.updateSegmentChars();
+            }
+
+            if (this.state === 'following' && this.isMouseDown && this.segments.length > 0) {
+                const dx = this.mousePos.x - this.segments[0].x;
+                const dy = this.mousePos.y - this.segments[0].y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance > 50) {
+                    this.velocity.x += (dx / distance) * 0.5;
+                    this.velocity.y += (dy / distance) * 0.5;
+                }
+            } else if (this.state === 'wandering') {
+                this.velocity.x += (Math.random() - 0.5) * 0.3;
+                this.velocity.y += (Math.random() - 0.5) * 0.3;
+
+                this.velocity.x += Math.sin(this.time * 0.5) * 0.2;
+                this.velocity.y += Math.cos(this.time * 0.3) * 0.2;
+            }
+
+            const energyMultiplier = (this.energy / 100) * 0.5 + 0.5;
+            this.velocity.x *= energyMultiplier;
+            this.velocity.y *= energyMultiplier;
+
+            this.velocity.x *= 0.95;
+            this.velocity.y *= 0.95;
+
+            //const maxSpeed = this.state === 'boosting' ? 8 : 4;
+            const maxSpeed = 4.8;
+            const speed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
+            if (speed > maxSpeed) {
+                this.velocity.x = (this.velocity.x / speed) * maxSpeed;
+                this.velocity.y = (this.velocity.y / speed) * maxSpeed;
+            }
+
+            if (this.segments.length > 0) {
+                if (this.segments[0].x <= 0 || this.segments[0].x >= window.innerWidth) {
+                    this.velocity.x *= -0.8;
+                }
+                if (this.segments[0].y <= 0 || this.segments[0].y >= window.innerHeight) {
+                    this.velocity.y *= -0.8;
+                }
+
+                this.segments[0].targetX += this.velocity.x;
+                this.segments[0].targetY += this.velocity.y;
+
+                this.segments[0].targetX = Math.max(20, Math.min(window.innerWidth - 20, this.segments[0].targetX));
+                this.segments[0].targetY = Math.max(20, Math.min(window.innerHeight - 20, this.segments[0].targetY));
+            }
+        }
+
+        updateSegments() {
+            if (this.isDestroyed || this.segments.length === 0) return;
+
+            this.segments[0].x += (this.segments[0].targetX - this.segments[0].x) * 0.1;
+            this.segments[0].y += (this.segments[0].targetY - this.segments[0].y) * 0.1;
+
+            for (let i = 1; i < this.segments.length; i++) {
+                const prevSegment = this.segments[i - 1];
+                const currentSegment = this.segments[i];
+
+                const dx = prevSegment.x - currentSegment.x;
+                const dy = prevSegment.y - currentSegment.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const targetDistance = 25;
+
+                if (distance > targetDistance) {
+                    const moveX = (dx / distance) * (distance - targetDistance);
+                    const moveY = (dy / distance) * (distance - targetDistance);
+
+                    currentSegment.x += moveX * 0.3;
+                    currentSegment.y += moveY * 0.3;
+                }
+
+                currentSegment.y += Math.sin(this.time * 2 + i * 0.3) * 1.5;
+            }
+
+            this.segments.forEach((segment, index) => {
+                if (segment.element) {
+                    // Update position
+                    segment.element.style.left = segment.x + 'px';
+                    segment.element.style.top = segment.y + 'px';
+
+                    // Update 3D rotation - each segment rotates at its own speed
+                    ////this.segmentRotations[index] += this.rotationSpeeds[index] * (this.energy / 50 + 0.5);
+                    // Add movement-based rotation boost
+                    ////const speed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
+                    ////this.segmentRotations[index] += speed * 0.05;
+
+                    // Shared base rotation (50% faster now)
+                    const baseRotationSpeed = 0.05 * 1.5 * (this.energy / 50 + 0.5);
+
+                    const speed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
+                    const movementBoost = speed * 0.03 * 1.5;
+
+                    // Linked smooth rotation with phase offset
+                    this.segmentRotations[index] = this.time * (baseRotationSpeed + movementBoost) + index * 0.3;
+
+                    // Calculate 3D transform
+                    const zOffset = Math.sin(this.time + index * 0.2) * 5;
+                    const rotationY = this.segmentRotations[index] * 10; // Convert to degrees
+                    const rotationZ = Math.sin(this.time * 0.5 + index * 0.3) * 5;
+                    const scale = 1 + (Math.sin(this.segmentRotations[index]) * 0.1);
+
+                    // Apply complex 3D transformation
+                    segment.element.style.transform = `
+                        translateZ(${zOffset}px)
+                        rotateY(${rotationY}deg)
+                        rotateZ(${rotationZ}deg)
+                        scale(${scale})
+                        perspective(1000px)
+                    `;
+
+                    // Update segment character based on rotation
+                    const newChar = this.getSegmentChar(index);
+                    if (segment.element.textContent !== newChar) {
+                        segment.element.textContent = newChar;
+                    }
+
+                    // Dynamic color shifting based on rotation and depth
+                    const hueShift = (this.segmentRotations[index] * 20 + zOffset * 2) % 360;
+                    if (index === 0) {
+                        segment.element.style.filter = `hue-rotate(${hueShift}deg) brightness(${1.2 + Math.sin(this.time + index) * 0.2})`;
+                    } else if (index === this.length - 1) {
+                        segment.element.style.filter = `hue-rotate(${hueShift}deg) brightness(${0.8 + Math.sin(this.time + index) * 0.1})`;
+                    } else {
+                        segment.element.style.filter = `hue-rotate(${hueShift}deg) brightness(${1 + Math.sin(this.time + index) * 0.15})`;
+                    }
+                }
+            });
+
+            const energyElement = document.getElementById('energy');
+            if (energyElement) {
+                energyElement.textContent = Math.round(this.energy);
+            }
+        }
+
+        animate() {
+            if (this.isDestroyed) return;
+
+            this.updateMovement();
+            this.updateSegments();
+            this.animationId = requestAnimationFrame(() => this.animate());
+        }
+
+        cleanup() {
+            this.isDestroyed = true;
+
+            if (this.animationId) {
+                cancelAnimationFrame(this.animationId);
+            }
+
+            // Remove event listeners
+            document.removeEventListener('mousemove', this.mouseMoveHandler);
+            document.removeEventListener('mousedown', this.mouseDownHandler);
+            document.removeEventListener('mouseup', this.mouseUpHandler);
+            document.removeEventListener('keydown', this.keyDownHandler);
+
+            // Clean up DOM elements
+            if (this.playground) {
+                const segments = this.playground.querySelectorAll('.centipede-segment, .particle');
+                segments.forEach(segment => segment.remove());
+            }
+
+            this.segments = [];
+        }
+    }
+</script>
