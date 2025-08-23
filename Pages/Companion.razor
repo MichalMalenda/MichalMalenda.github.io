@@ -12,6 +12,8 @@
     </div>
 </div>
 
+
+
 @code
 {
     private IJSObjectReference? jsModule;
@@ -50,9 +52,6 @@
 
 <script>
     let centipedeInstance = null;
-    this.mouseVelocity = { x: 0, y: 0 };
-    this.lastMousePos = { x: 0, y: 0 };
-    this.lastMouseTime = performance.now();
 
     window.initializeCentipede = () => {
         if (centipedeInstance) {
@@ -75,32 +74,37 @@
             this.playground = document.getElementById('playground');
             this.cursor = document.getElementById('cursor');
             this.segments = [];
-            this.length = 31; //number of segments
-            this.segmentWidth = 5; // Number of characters per segment
+            this.length = 31;
             this.position = { x: window.innerWidth / 2, y: window.innerHeight / 2, z: 0 };
             this.velocity = { x: 0, y: 0, z: 0 };
-            this.targetPosition = null;
             this.state = 'wandering';
             this.energy = 100;
             this.time = 0;
-            this.mousePos = { x: 0, y: 0 };
+            this.mousePos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
             this.isMouseDown = false;
             this.animationId = null;
             this.isDestroyed = false;
 
-            //mouse tracking
-            this.mousePos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+            // Mouse tracking
             this.lastMousePos = { x: this.mousePos.x, y: this.mousePos.y };
             this.lastMouseTime = performance.now();
-            this.mouseVelocity = { x: 0, y: 0 }; // px/ms
-            this.mouseSpeedEMA = 0;// smoothed scalar speed (px/ms)
+            this.mouseVelocity = { x: 0, y: 0 };
+            this.mouseSpeedEMA = 0;
 
+            // Pattern movement properties - FULL PLAYGROUND PATTERNS
+            this.patternState = 'none'; // 'none', 'square', 'infinity'
+            this.squareCorner = 0;
+            this.squareProgress = 0;
+            // Use 95% of playground dimensions for maximum visibility with small safety margin
+            this.squareSize = Math.min(window.innerWidth, window.innerHeight) * 0.95;
+            this.squareCenter = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+            this.infinityProgress = 0;
+            this.infinityPasses = 0;
 
-            // 3D rotation angles for each segment
+            // 3D rotation angles
             this.segmentRotations = new Array(this.length).fill(0);
             this.rotationSpeeds = [];
 
-            // Initialize rotation speeds for each segment
             for (let i = 0; i < this.length; i++) {
                 this.rotationSpeeds[i] = (Math.random() - 0.5) * 0.1;
             }
@@ -110,14 +114,7 @@
                 ['▓▒░█▄', '▀■□▪▫', '◼◻▬▭▮', '▯▰▱▲▴', '▵▶▷▸▹'],
                 ['※✱✲✳✴', '✵✶✷✸✹', '✺✻✼✽✾', '✿❀❁❂❃', '❄❅❆❇❈'],
                 ['◆◇◈◉◊', '●◎◐◑◒', '◓◔◕◖◗', '◘◙◚◛◜', '◝◞◟◠◡'],
-                ['⚬⚭⚮⚯⚰', '⚱⚲⚳⚴⚵', '⚶⚷⚸⚹⚺', '⚻⚼⚽⚾⚿', '⛀⛁⛂⛃⛄'],
-                ['♠♣♥♦★', '☀☁☂☃☄', '☉☊☋☌☍', '☽☾☿♀♂', '♈♉♊♋♌'],
-                ['⊙⊚⊛⊜⊝', '◍◎◉◌◍', '⚪⚫⚽⚾⛳', '⦿⦾⦻⦺⦹', '⦶⦷⦸⦵⦴'],
-                ['▤▥▦▧▨', '▩▪▫▭▮', '▯▰▱▲△', '◰◱◲◳◴', '◵◶◷◸◹'],
-                ['⌁⌂⌃⌄⌅', '⌆⌇⌈⌉⌊', '⌋⌌⌍⌎⌏', '⎀⎁⎂⎃⎄', '⎅⎆⎇⎈⎉'],
-                ['☌☍☊☋☇', '☈☉☊☋☌', '☍☎☏☑☒', '☓☔☕☖☗', '☘☙☚☛☜'],
-                ['╔╗╚╝╠╣', '═║╦╩╬', '┌┐└┘├┤', '─┼┬┴┽', '▌▐▔▕▖']
-
+                ['⚬⚭⚮⚯⚰', '⚱⚲⚳⚴⚵', '⚶⚷⚸⚹⚺', '⚻⚼⚽⚾⚿', '⛀⛁⛂⛃⛄']
             ];
 
             this.currentPattern = 0;
@@ -137,17 +134,6 @@
             const existingSegments = this.playground.querySelectorAll('.centipede-segment');
             existingSegments.forEach(segment => segment.remove());
 
-            // Get current viewport dimensions
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-
-            // Set initial position to center of screen
-            this.position.x = viewportWidth / 2;
-            this.position.y = viewportHeight / 2;
-
-            console.log(`Initializing centipede at: ${this.position.x}, ${this.position.y}`);
-            console.log(`Viewport: ${viewportWidth} x ${viewportHeight}`);
-
             // Create centipede segments
             for (let i = 0; i < this.length; i++) {
                 const segment = document.createElement('div');
@@ -155,16 +141,15 @@
                 if (i === 0) segment.classList.add('head');
                 if (i === this.length - 1) segment.classList.add('tail');
 
-                // Force inline styles to override any Blazor CSS conflicts
                 segment.style.cssText = `
                     position: absolute !important;
                     font-family: 'Consolas', monospace !important;
                     font-size: ${i === 0 ? '20px' : i === this.length - 1 ? '12px' : '16px'} !important;
                     font-weight: bold !important;
-                    color: ${i === 0 ? '#333' : i === this.length - 1 ? '#e5e5e5' : '#e5e5e5'} !important;
+                    color: ${i === 0 ? '#ff6b6b' : i === this.length - 1 ? '#888' : '#e5e5e5'} !important;
                     text-shadow: 0 0 10px currentColor, 0 0 20px currentColor !important;
                     user-select: none !important;
-                    z-index: ${20 - i} !important;
+                    z-index: ${1000 - i} !important;
                     width: auto !important;
                     height: auto !important;
                     display: inline-block !important;
@@ -183,8 +168,6 @@
                 segment.textContent = this.getSegmentChar(i);
                 segment.style.left = initialX + 'px';
                 segment.style.top = initialY + 'px';
-
-                console.log(`Segment ${i}: ${segment.textContent} at (${initialX}, ${initialY})`);
 
                 this.playground.appendChild(segment);
                 this.segments.push({
@@ -206,17 +189,14 @@
             const segmentPattern = pattern[rotationIndex < 0 ? pattern.length + rotationIndex : rotationIndex];
 
             if (index === 0) {
-                // Head - show direction with arrow-like pattern
                 const headPatterns = ['►►►►►', '▶▶▶▶▶', '»»»»»', '→→→→→', '⟩⟩⟩⟩⟩'];
                 const headIndex = Math.floor(this.segmentRotations[index] / 2) % headPatterns.length;
                 return headPatterns[headIndex < 0 ? headPatterns.length + headIndex : headIndex];
             } else if (index === this.length - 1) {
-                // Tail - smaller, fading pattern
                 const tailPatterns = ['◦◦◦', '··', '∘', '○', '●'];
                 const tailIndex = Math.floor(this.segmentRotations[index] / 3) % tailPatterns.length;
                 return tailPatterns[tailIndex < 0 ? tailPatterns.length + tailIndex : tailIndex];
             } else {
-                // Body segments - full 3D screw effect
                 return segmentPattern;
             }
         }
@@ -224,17 +204,15 @@
         bindEvents() {
             this.mouseMoveHandler = (e) => {
                 const now = performance.now();
-                const dt = Math.max(1, now - this.lastMouseTime); // ms
+                const dt = Math.max(1, now - this.lastMouseTime);
 
                 const dx = e.clientX - this.lastMousePos.x;
                 const dy = e.clientY - this.lastMousePos.y;
-                const instSpeed = Math.hypot(dx, dy) / dt; // px/ms
+                const instSpeed = Math.hypot(dx, dy) / dt;
 
-                // smooth the speed to avoid jitter
                 const alpha = 0.3;
                 this.mouseSpeedEMA += alpha * (instSpeed - this.mouseSpeedEMA);
 
-                // keep vector too (can be useful for effects)
                 this.mouseVelocity.x = dx / dt;
                 this.mouseVelocity.y = dy / dt;
 
@@ -254,29 +232,23 @@
             this.mouseDownHandler = (e) => {
                 this.isMouseDown = true;
                 this.feed(e.clientX, e.clientY);
-                this.setState('following');
+                if (this.patternState === 'none') {
+                    this.setState('following');
+                }
             };
 
             this.mouseUpHandler = () => {
                 this.isMouseDown = false;
                 setTimeout(() => {
-                    if (!this.isMouseDown) {
+                    if (!this.isMouseDown && this.patternState === 'none') {
                         this.setState('wandering');
                     }
                 }, 1000);
             };
 
-            //this.keyDownHandler = (e) => {
-            //    if (e.code === 'Space') {
-            //        e.preventDefault();
-            //        this.boost();
-            //    }
-            //};
-
             document.addEventListener('mousemove', this.mouseMoveHandler);
             document.addEventListener('mousedown', this.mouseDownHandler);
             document.addEventListener('mouseup', this.mouseUpHandler);
-            //document.addEventListener('keydown', this.keyDownHandler);
         }
 
         setState(newState) {
@@ -294,53 +266,11 @@
         feed(x, y) {
             this.energy = Math.min(100, this.energy + 10);
             this.createParticles(x, y, '♥');
-            this.setState('eating');
-            setTimeout(() => {
-                if (!this.isMouseDown) this.setState('wandering');
-            }, 500);
-        }
-
-        //boost() {
-        //    if (this.energy >= 20) {
-        //        this.energy -= 20;
-        //        this.setState('boosting');
-        //        this.velocity.x *= 2;
-        //        this.velocity.y *= 2;
-        //
-        //        // Boost rotation speeds during boost
-        //        this.rotationSpeeds = this.rotationSpeeds.map(speed => speed * 3);
-        //
-        //           this.evolve();
-        //    setTimeout(() => {
-        //             this.setState('wandering');
-        //           // Restore normal rotation speeds
-        //          this.rotationSpeeds = this.rotationSpeeds.map(speed => speed / 3);
-        //     }, 1000);
-        //}
-        //}
-
-        evolve() {
-            this.currentPattern = (this.currentPattern + 1) % this.asciiPatterns.length;
-
-            // Randomize rotation speeds when evolving
-            for (let i = 0; i < this.length; i++) {
-                this.rotationSpeeds[i] = (Math.random() - 0.5) * 0.15;
-            }
-
-            this.updateSegmentChars();
-            if (this.segments.length > 0) {
-                this.createParticles(this.segments[0].x, this.segments[0].y, '✨');
-
-                // Create evolution burst effect
-                for (let i = 0; i < this.segments.length; i++) {
-                    setTimeout(() => {
-                        this.createParticles(
-                            this.segments[i].x + (Math.random() - 0.5) * 30,
-                            this.segments[i].y + (Math.random() - 0.5) * 30,
-                            ['⚡', '✨', '💫', '⭐'][Math.floor(Math.random() * 4)]
-                        );
-                    }, i * 100);
-                }
+            if (this.patternState === 'none') {
+                this.setState('eating');
+                setTimeout(() => {
+                    if (!this.isMouseDown && this.patternState === 'none') this.setState('wandering');
+                }, 500);
             }
         }
 
@@ -371,151 +301,328 @@
             }
         }
 
+        getSquareTarget() {
+            const halfSize = this.squareSize / 2;
+            // Use minimal padding to maximize pattern size - just 20px safety margin
+            const padding = 20;
+            const maxHalfSize = Math.min(
+                (window.innerWidth - padding) / 2,
+                (window.innerHeight - padding) / 2
+            );
+            const actualHalfSize = Math.min(halfSize, maxHalfSize);
+
+            const corners = [
+                { x: this.squareCenter.x - actualHalfSize, y: this.squareCenter.y - actualHalfSize }, // top-left
+                { x: this.squareCenter.x + actualHalfSize, y: this.squareCenter.y - actualHalfSize }, // top-right
+                { x: this.squareCenter.x + actualHalfSize, y: this.squareCenter.y + actualHalfSize }, // bottom-right
+                { x: this.squareCenter.x - actualHalfSize, y: this.squareCenter.y + actualHalfSize }  // bottom-left
+            ];
+
+            const currentCorner = corners[this.squareCorner];
+            const nextCorner = corners[(this.squareCorner + 1) % 4];
+
+            const targetX = currentCorner.x + (nextCorner.x - currentCorner.x) * this.squareProgress;
+            const targetY = currentCorner.y + (nextCorner.y - currentCorner.y) * this.squareProgress;
+
+            return { x: targetX, y: targetY };
+        }
+
+        getInfinityTarget() {
+            const scaleX = window.innerWidth * 0.35;   // width of lobes
+            const scaleY = window.innerHeight * 0.35;  // height of lobes
+            const centerX = this.squareCenter.x;
+            const centerY = this.squareCenter.y;
+
+            const t = this.infinityProgress * Math.PI * 2;
+
+            // Clean sideways figure-8
+            const x = centerX + scaleX * Math.sin(t);
+            const y = centerY + scaleY * Math.sin(t) * Math.cos(t);
+
+            return { x, y };
+        }
+
+
         updateMovement() {
             if (this.isDestroyed) return;
 
-            // time/energy housekeeping
             this.time += 0.05;
-            this.energy = Math.max(0, this.energy - 0.02);
 
-            // periodic pattern change
-            this.patternTimer++;
-            if (this.patternTimer > 300) {
-                this.patternTimer = 0;
-                this.currentPattern = (this.currentPattern + 1) % this.asciiPatterns.length;
-                this.updateSegmentChars();
+            // Check for pattern triggers
+            if (this.energy <= 50 && this.patternState === 'none' && !this.isMouseDown) {
+                // Recalculate maximum square size when pattern starts - nearly full playground
+                this.squareSize = Math.min(window.innerWidth, window.innerHeight) * 0.95;
+                this.squareCenter = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+                this.patternState = 'square';
+                this.squareCorner = 0;
+                this.squareProgress = 0;
+                this.setState('square pattern');
+                console.log(`Starting maximum square pattern - size: ${this.squareSize}px (95% of playground)`);
             }
 
-            // ---- FOLLOW / WANDER LOGIC ----
-            if (this.segments.length > 0) {
+            if (this.patternState === 'square') {
+                const target = this.getSquareTarget();
                 const head = this.segments[0];
 
-                if (this.state === 'following' && this.isMouseDown) {
-                    // vector from head to mouse
-                    const dx = this.mousePos.x - head.x;
-                    const dy = this.mousePos.y - head.y;
-                    const dist = Math.hypot(dx, dy) || 1;
+                const dx = target.x - head.x;
+                const dy = target.y - head.y;
+                const dist = Math.hypot(dx, dy);
 
-                    // desired direction
-                    const dirX = dx / dist;
-                    const dirY = dy / dist;
+                if (dist < 15) { // tolerance for reaching a corner
+                    this.squareProgress = 0;
+                    this.squareCorner = (this.squareCorner + 1) % 4;
 
-                    // convert mouse speed (px/ms) to “px/frame” scale
-                    // 16 ~ typical ms/frame; tune kMouse, kBase to taste
-                    const kMouse = 16 * 1.0;   // sensitivity to mouse speed
-                    const kBase  = 1.4;        // base minimum speed (20% faster than 1.2-ish)
-                    let desiredSpeed = kBase + kMouse * this.mouseSpeedEMA;
+                    if (this.squareCorner === 0) {
+                        // completed one full lap
+                        this.squarePasses = (this.squarePasses || 0) + 1;
 
-                    // near the cursor: taper speed so we don't overshoot
-                    const deadzone = 30;
-                    if (dist < deadzone) {
-                        desiredSpeed *= (dist / deadzone);
+                        if (this.squarePasses >= 2) { // ⬅️ only after 2 laps
+                            this.patternState = 'infinity';
+                            this.infinityProgress = 0;
+                            this.infinityPasses = 0;
+                            this.setState('infinity pattern');
+                            this.squarePasses = 0; // reset counter
+                            return;
+                        }
+                    }
+                }
+
+                const speed = 20; // head speed on square
+                this.velocity.x = (dx / dist) * speed;
+                this.velocity.y = (dy / dist) * speed;
+
+                head.targetX = head.x + this.velocity.x;
+                head.targetY = head.y + this.velocity.y;
+
+                this.energy = Math.max(0, this.energy - 0.05);
+            } else if (this.patternState === 'infinity') {
+                const head = this.segments[0];
+                const centerX = this.squareCenter.x;
+                const centerY = this.squareCenter.y;
+
+                // Much bigger circles (x3 from before)
+                const radius = Math.min(window.innerWidth, window.innerHeight) * 3;
+
+                // Step 1: Move to center before starting infinity
+                if (!this.infinityPhase) {
+                    const dx = centerX - head.x;
+                    const dy = centerY - head.y;
+                    const dist = Math.hypot(dx, dy);
+                    const speed = 25;
+
+                    if (dist > 10) {
+                        this.velocity.x = (dx / dist) * speed;
+                        this.velocity.y = (dy / dist) * speed;
+                        head.targetX = head.x + this.velocity.x;
+                        head.targetY = head.y + this.velocity.y;
+                        return; // don’t start infinity until centered
+                    } else {
+                        // snap into infinity start
+                        this.infinityPhase = "rightCircle";
+                        this.infinityProgress = 0;
+                    }
+                }
+
+                // Step 2: Infinity loop (right circle → cross → left circle → cross)
+                let target = { x: head.x, y: head.y };
+
+                if (this.infinityPhase === "rightCircle") {
+                    const cx = centerX + radius;
+                    const cy = centerY;
+                    const angle = Math.PI * 2 * this.infinityProgress;
+                    target.x = cx + radius * Math.cos(angle);
+                    target.y = cy + radius * Math.sin(angle);
+                    this.infinityProgress += 0.005;
+                    if (this.infinityProgress >= 1) {
+                        this.infinityPhase = "crossToLeft";
+                        this.infinityProgress = 0;
+                    }
+                }
+                else if (this.infinityPhase === "crossToLeft") {
+                    target.x = centerX - radius;
+                    target.y = centerY;
+                    this.infinityProgress += 0.01;
+                    if (this.infinityProgress >= 1) {
+                        this.infinityPhase = "leftCircle";
+                        this.infinityProgress = 0;
+                    }
+                }
+                else if (this.infinityPhase === "leftCircle") {
+                    const cx = centerX - radius;
+                    const cy = centerY;
+                    const angle = Math.PI * 2 * this.infinityProgress;
+                    target.x = cx + radius * Math.cos(angle);
+                    target.y = cy + radius * Math.sin(angle);
+                    this.infinityProgress += 0.005;
+                    if (this.infinityProgress >= 1) {
+                        this.infinityPhase = "crossToRight";
+                        this.infinityProgress = 0;
+                    }
+                }
+                else if (this.infinityPhase === "crossToRight") {
+                    target.x = centerX + radius;
+                    target.y = centerY;
+                    this.infinityProgress += 0.01;
+                    if (this.infinityProgress >= 1) {
+                        this.infinityPhase = "rightCircle";
+                        this.infinityProgress = 0;
+                        this.infinityPasses++;
+                    }
+                }
+
+                // move head toward target
+                const dx = target.x - head.x;
+                const dy = target.y - head.y;
+                const dist = Math.hypot(dx, dy);
+                const speed = 8;
+                this.velocity.x = (dx / dist) * speed;
+                this.velocity.y = (dy / dist) * speed;
+
+                head.targetX = head.x + this.velocity.x;
+                head.targetY = head.y + this.velocity.y;
+
+                // restore energy gradually
+                this.energy = Math.min(100, this.energy + 0.02);
+                if (this.energy >= 100) {
+                    this.patternState = 'none';
+                    this.setState('wandering');
+                    this.infinityPhase = null;
+                }
+
+            } else {
+                this.energy = Math.max(0, this.energy - 0.02);
+
+                this.patternTimer++;
+                if (this.patternTimer > 300) {
+                    this.patternTimer = 0;
+                    this.currentPattern = (this.currentPattern + 1) % this.asciiPatterns.length;
+                    this.updateSegmentChars();
+                }
+
+                if (this.segments.length > 0) {
+                    const head = this.segments[0];
+
+                    if (this.state === 'following' && this.isMouseDown) {
+                        const dx = this.mousePos.x - head.x;
+                        const dy = this.mousePos.y - head.y;
+                        const dist = Math.hypot(dx, dy) || 1;
+
+                        const dirX = dx / dist;
+                        const dirY = dy / dist;
+
+                        const kMouse = 16 * 1.0;
+                        const kBase = 1.4;
+                        let desiredSpeed = kBase + kMouse * this.mouseSpeedEMA;
+
+                        const deadzone = 30;
+                        if (dist < deadzone) {
+                            desiredSpeed *= (dist / deadzone);
+                        }
+
+                        const maxSpeed = Math.max(3.0, Math.min(6.0, desiredSpeed * 1.5));
+                        desiredSpeed = Math.min(desiredSpeed, maxSpeed);
+
+                        const vTargetX = dirX * desiredSpeed;
+                        const vTargetY = dirY * desiredSpeed;
+
+                        const responsiveness = 0.22;
+                        this.velocity.x += (vTargetX - this.velocity.x) * responsiveness;
+                        this.velocity.y += (vTargetY - this.velocity.y) * responsiveness;
+
+                    } else {
+                        this.velocity.x += (Math.random() - 0.5) * 0.36;
+                        this.velocity.y += (Math.random() - 0.5) * 0.36;
+                        this.velocity.x += Math.sin(this.time * 0.5) * 0.24;
+                        this.velocity.y += Math.cos(this.time * 0.3) * 0.24;
                     }
 
-                    // cap based on how wild mouse moves can be
-                    const maxSpeed = Math.max(3.0, Math.min(6.0, desiredSpeed * 1.5));
-                    desiredSpeed = Math.min(desiredSpeed, maxSpeed);
+                    const energyMultiplier = (this.energy / 100) * 1 + 0.5;
+                    this.velocity.x *= energyMultiplier;
+                    this.velocity.y *= energyMultiplier;
 
-                    // target velocity toward the cursor at the chosen speed
-                    const vTargetX = dirX * desiredSpeed;
-                    const vTargetY = dirY * desiredSpeed;
+                    this.velocity.x *= 0.95;
+                    this.velocity.y *= 0.95;
 
-                    // blend current velocity toward target (steering)
-                    const responsiveness = 0.22; // 0..1 higher = snappier
-                    this.velocity.x += (vTargetX - this.velocity.x) * responsiveness;
-                    this.velocity.y += (vTargetY - this.velocity.y) * responsiveness;
+                    const vMag = Math.hypot(this.velocity.x, this.velocity.y);
+                    const hardMax = 6.0;
+                    if (vMag > hardMax) {
+                        this.velocity.x = (this.velocity.x / vMag) * hardMax;
+                        this.velocity.y = (this.velocity.y / vMag) * hardMax;
+                    }
 
-                } else {
-                    // wandering (keep your faster-by-20% feel)
-                    this.velocity.x += (Math.random() - 0.5) * 0.36;
-                    this.velocity.y += (Math.random() - 0.5) * 0.36;
-                    this.velocity.x += Math.sin(this.time * 0.5) * 0.24;
-                    this.velocity.y += Math.cos(this.time * 0.3) * 0.24;
+                    head.targetX += this.velocity.x;
+                    head.targetY += this.velocity.y;
+
+                    head.targetX = Math.max(20, Math.min(window.innerWidth - 20, head.targetX));
+                    head.targetY = Math.max(20, Math.min(window.innerHeight - 20, head.targetY));
+
+                    if (head.x <= 0 || head.x >= window.innerWidth) this.velocity.x *= -0.8;
+                    if (head.y <= 0 || head.y >= window.innerHeight) this.velocity.y *= -0.8;
                 }
-
-                // energy influence & damping
-                const energyMultiplier = (this.energy / 100) * 1 + 0.5; // was *0.5
-                this.velocity.x *= energyMultiplier;
-                this.velocity.y *= energyMultiplier;
-
-                this.velocity.x *= 0.95;
-                this.velocity.y *= 0.95;
-
-                // final clamping (keeps things sane if mouse flicks)
-                const vMag = Math.hypot(this.velocity.x, this.velocity.y);
-                const hardMax = 6.0; // slightly above the 20% boosted cap
-                if (vMag > hardMax) {
-                    this.velocity.x = (this.velocity.x / vMag) * hardMax;
-                    this.velocity.y = (this.velocity.y / vMag) * hardMax;
-                }
-
-                // advance head target
-                head.targetX += this.velocity.x;
-                head.targetY += this.velocity.y;
-
-                // keep inside viewport
-                head.targetX = Math.max(20, Math.min(window.innerWidth  - 20, head.targetX));
-                head.targetY = Math.max(20, Math.min(window.innerHeight - 20, head.targetY));
-
-                // bounce if we hit edges
-                if (head.x <= 0 || head.x >= window.innerWidth)  this.velocity.x *= -0.8;
-                if (head.y <= 0 || head.y >= window.innerHeight) this.velocity.y *= -0.8;
             }
         }
-
 
         updateSegments() {
             if (this.isDestroyed || this.segments.length === 0) return;
 
-            this.segments[0].x += (this.segments[0].targetX - this.segments[0].x) * 0.1;
-            this.segments[0].y += (this.segments[0].targetY - this.segments[0].y) * 0.1;
+            this.segments[0].x += (this.segments[0].targetX - this.segments[0].x) * 0.25; // was 0.1
+            this.segments[0].y += (this.segments[0].targetY - this.segments[0].y) * 0.25;
+
+            let targetDistance = this.patternState !== 'none' ? 45 : 25;
+            let followSpeed   = this.patternState !== 'none' ? 0.8 : 0.3; // faster in patterns
+
+
+            if (this.patternState !== 'none') {
+                // During patterns, allow much more stretching and faster following
+                targetDistance = 45; // Allow segments to be much further apart
+                followSpeed = 0.6; // Follow faster to keep up with head movement
+            }
 
             for (let i = 1; i < this.segments.length; i++) {
-                const prevSegment = this.segments[i - 1];
-                const currentSegment = this.segments[i];
+                const prev = this.segments[i - 1];
+                const seg = this.segments[i];
 
-                const dx = prevSegment.x - currentSegment.x;
-                const dy = prevSegment.y - currentSegment.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                const targetDistance = 25;
+                // Distance to previous segment
+                const dx = prev.x - seg.x;
+                const dy = prev.y - seg.y;
+                const dist = Math.hypot(dx, dy);
 
-                if (distance > targetDistance) {
-                    const moveX = (dx / distance) * (distance - targetDistance);
-                    const moveY = (dy / distance) * (distance - targetDistance);
-
-                    currentSegment.x += moveX * 0.3;
-                    currentSegment.y += moveY * 0.3;
+                const followDistance = 20; // spacing between segments
+                if (dist > followDistance) {
+                    const ratio = followDistance / dist;
+                    seg.targetX = prev.x - dx * ratio;
+                    seg.targetY = prev.y - dy * ratio;
+                } else {
+                    seg.targetX = seg.x;
+                    seg.targetY = seg.y;
                 }
 
-                currentSegment.y += Math.sin(this.time * 2 + i * 0.3) * 1.5;
+                // Smoothly move toward target
+                seg.x += (seg.targetX - seg.x) * 0.4;
+                seg.y += (seg.targetY - seg.y) * 0.4;
             }
+
+            const head = this.segments[0];
+            head.x += (head.targetX - head.x) * 0.5;
+            head.y += (head.targetY - head.y) * 0.5;
 
             this.segments.forEach((segment, index) => {
                 if (segment.element) {
-                    // Update position
                     segment.element.style.left = segment.x + 'px';
                     segment.element.style.top = segment.y + 'px';
 
-                    // Update 3D rotation - each segment rotates at its own speed
-                    ////this.segmentRotations[index] += this.rotationSpeeds[index] * (this.energy / 50 + 0.5);
-                    // Add movement-based rotation boost
-                    ////const speed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
-                    ////this.segmentRotations[index] += speed * 0.05;
-
-                    // Shared base rotation
-                    const baseRotationSpeed = 0.05 * 1.5 * (this.energy / 50 + 0.5);
+                    const patternSpeedBoost = (this.patternState !== 'none') ? 2 : 1;
+                    const baseRotationSpeed = 0.05 * 1.5 * (this.energy / 50 + 0.5) * patternSpeedBoost;
                     const speed = Math.hypot(this.velocity.x, this.velocity.y);
                     const movementBoost = speed * 0.03 * 1.5;
                     this.segmentRotations[index] = this.time * (baseRotationSpeed + movementBoost) + index * 0.3;
 
-
-                    // Calculate 3D transform
                     const zOffset = Math.sin(this.time + index * 0.2) * 5;
-                    const rotationY = this.segmentRotations[index] * 10; // Convert to degrees
+                    const rotationY = this.segmentRotations[index] * 10;
                     const rotationZ = Math.sin(this.time * 0.5 + index * 0.3) * 5;
                     const scale = 1 + (Math.sin(this.segmentRotations[index]) * 0.1);
 
-                    // Apply complex 3D transformation
                     segment.element.style.transform = `
                         translateZ(${zOffset}px)
                         rotateY(${rotationY}deg)
@@ -524,14 +631,13 @@
                         perspective(1000px)
                     `;
 
-                    // Update segment character based on rotation
                     const newChar = this.getSegmentChar(index);
                     if (segment.element.textContent !== newChar) {
                         segment.element.textContent = newChar;
                     }
 
-                    // Dynamic color shifting based on rotation and depth
-                    const hueShift = (this.segmentRotations[index] * 20 + zOffset * 2) % 360;
+                    const patternHueBoost = (this.patternState !== 'none') ? 50 : 0;
+                    const hueShift = (this.segmentRotations[index] * 20 + zOffset * 2 + patternHueBoost) % 360;
                     if (index === 0) {
                         segment.element.style.filter = `hue-rotate(${hueShift}deg) brightness(${1.2 + Math.sin(this.time + index) * 0.2})`;
                     } else if (index === this.length - 1) {
@@ -563,13 +669,10 @@
                 cancelAnimationFrame(this.animationId);
             }
 
-            // Remove event listeners
             document.removeEventListener('mousemove', this.mouseMoveHandler);
             document.removeEventListener('mousedown', this.mouseDownHandler);
             document.removeEventListener('mouseup', this.mouseUpHandler);
-            document.removeEventListener('keydown', this.keyDownHandler);
 
-            // Clean up DOM elements
             if (this.playground) {
                 const segments = this.playground.querySelectorAll('.centipede-segment, .particle');
                 segments.forEach(segment => segment.remove());
