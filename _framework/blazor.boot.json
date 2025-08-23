@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "MichalMalenda.github.io",
   "resources": {
-    "hash": "sha256-vDBukFWGo67WepRavTHzadsWVvTTcoGQNG4mWTb6g0E=",
+    "hash": "sha256-kvAYMULnAw5sA3AtaChRH6S8tx9WR5UQYh5K/fDpKcI=",
     "jsModuleNative": {
       "dotnet.native.8.0.19.ihm50f0zha.js": "sha256-O/NCYcAN9uPocD7ns7AzF/cqx7f5vL1PTJCQs0vEXyk="
     },
@@ -19,7 +19,7 @@
     "assembly": {
       "Flurl.Http.wasm": "sha256-iMqe+nOibw+E7tS10u49DD7Fql2zREGLx55EonINYL8=",
       "Flurl.wasm": "sha256-t1mhVXJqKWPvruV2UKzgXSLYKgWp5rskO/em+WGJ9pY=",
-      "MichalMalenda.github.io.wasm": "sha256-Ma/CBQ9F6KjZcAEjV1YDVRFgEUcRYPAR91G6KQuwki8=",
+      "MichalMalenda.github.io.wasm": "sha256-mtPsqBkutUCVHCXtrTK7FLxfrVxuQWYu5mOvcAlS9+c=",
       "Microsoft.AspNetCore.Components.Forms.wasm": "sha256-DG/YTEH2AgABXZdwbvke7hfcDZprvo4RberxfX+QB+M=",
       "Microsoft.AspNetCore.Components.wasm": "sha256-uvX7RraBAH+WgEsLUTscqr5rEUuTANCayygLHMpvtbY=",
       "Microsoft.AspNetCore.Components.Web.wasm": "sha256-DhX2rfqNI6VuU4XOLBnYBHxocF3dYAL86VWZBCm2TBc=",
