@@ -244,6 +244,165 @@ button[inherit-scope] {
         background-color: #A5C9FF;
         color: #212121;
     }
+/* /Pages/Eraser.razor.rz.scp.css */
+/* Use existing project styles */
+.upload-section[inherit-scope] {
+    width: 100%;
+    max-width: 600px;
+    margin: 20px auto;
+    text-align: center;
+}
+
+.file-input[inherit-scope] {
+    background-color: black;
+    color: #e5e5e5;
+    border: 1px solid #333;
+    border-radius: 15px;
+    padding: 10px;
+    width: 100%;
+    max-width: 400px;
+    margin: 10px auto;
+    display: block;
+}
+
+    .file-input:focus[inherit-scope] {
+        outline: none;
+        border-color: #A5C9FF;
+    }
+
+.processing-indicator[inherit-scope] {
+    color: #A5C9FF;
+    margin: 10px 0;
+    font-style: italic;
+}
+
+.controls-section[inherit-scope] {
+    width: 100%;
+    max-width: 600px;
+    margin: 20px auto;
+}
+
+.third-row[inherit-scope], .fourth-row[inherit-scope], .fifth-row[inherit-scope] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 15px 0;
+    flex-wrap: wrap;
+}
+
+.action-controls[inherit-scope] {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-left: 10px;
+}
+
+.radio-label[inherit-scope] {
+    color: #e5e5e5;
+    margin-left: 5px;
+    cursor: pointer;
+}
+
+input[type="radio"][inherit-scope] {
+    margin: 0 5px;
+    accent-color: #A5C9FF;
+}
+
+/* Center the h1 title */
+h1[inherit-scope] {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.color-display[inherit-scope] {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #333;
+    border-radius: 5px;
+    margin: 0 10px;
+    display: inline-block;
+}
+
+.color-text[inherit-scope] {
+    color: #e5e5e5;
+    font-family: monospace;
+}
+
+.color-picker[inherit-scope] {
+    width: 50px;
+    height: 30px;
+    background-color: black;
+    border: 1px solid #333;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+    .color-picker:focus[inherit-scope] {
+        outline: none;
+        border-color: #A5C9FF;
+    }
+
+.tolerance-slider[inherit-scope] {
+    width: 200px;
+    margin-left: 10px;
+    accent-color: #A5C9FF;
+}
+
+.images-section[inherit-scope] {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin: 30px 0;
+    flex-wrap: wrap;
+}
+
+.image-container[inherit-scope] {
+    text-align: center;
+    max-width: 400px;
+}
+
+    .image-container h4[inherit-scope] {
+        color: #e5e5e5;
+        margin-bottom: 15px;
+    }
+
+.preview-image[inherit-scope] {
+    max-width: 100%;
+    max-height: 300px;
+    border: 1px solid #333;
+    border-radius: 10px;
+    background-color: #111;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .first-row[inherit-scope], .second-row[inherit-scope], .third-row[inherit-scope], .fourth-row[inherit-scope], .fifth-row[inherit-scope] {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .text_box_label[inherit-scope] {
+        text-align: center;
+        margin-bottom: 5px;
+    }
+
+    .action-controls[inherit-scope] {
+        flex-direction: column;
+        gap: 10px;
+        margin: 0;
+    }
+
+    .images-section[inherit-scope] {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .tolerance-slider[inherit-scope] {
+        width: 250px;
+        margin: 10px 0;
+    }
+}
 /* /Pages/MinutesMaker.razor.rz.scp.css */
 .left_display[inherit-scope] {
     width: 100%;
