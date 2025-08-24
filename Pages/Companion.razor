@@ -13,7 +13,6 @@
 </div>
 
 
-
 @code
 {
     private IJSObjectReference? jsModule;
@@ -74,7 +73,7 @@
             this.playground = document.getElementById('playground');
             this.cursor = document.getElementById('cursor');
             this.segments = [];
-            this.length = 31;
+            this.length = 41;
             this.position = { x: window.innerWidth / 2, y: window.innerHeight / 2, z: 0 };
             this.velocity = { x: 0, y: 0, z: 0 };
             this.state = 'wandering';
@@ -92,14 +91,18 @@
             this.mouseSpeedEMA = 0;
 
             // Pattern movement properties - FULL PLAYGROUND PATTERNS
-            this.patternState = 'none'; // 'none', 'square', 'infinity'
+            this.patternState = 'none'; // 'none', 'square', 'bigcircle'
             this.squareCorner = 0;
             this.squareProgress = 0;
+            this.squarePasses = 0;
             // Use 95% of playground dimensions for maximum visibility with small safety margin
             this.squareSize = Math.min(window.innerWidth, window.innerHeight) * 0.95;
             this.squareCenter = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-            this.infinityProgress = 0;
-            this.infinityPasses = 0;
+
+            // Big circle pattern properties
+            this.circleProgress = 0;
+            this.circlePasses = 0;
+            this.circlePhase = null;
 
             // 3D rotation angles
             this.segmentRotations = new Array(this.length).fill(0);
@@ -114,7 +117,15 @@
                 ['▓▒░█▄', '▀■□▪▫', '◼◻▬▭▮', '▯▰▱▲▴', '▵▶▷▸▹'],
                 ['※✱✲✳✴', '✵✶✷✸✹', '✺✻✼✽✾', '✿❀❁❂❃', '❄❅❆❇❈'],
                 ['◆◇◈◉◊', '●◎◐◑◒', '◓◔◕◖◗', '◘◙◚◛◜', '◝◞◟◠◡'],
-                ['⚬⚭⚮⚯⚰', '⚱⚲⚳⚴⚵', '⚶⚷⚸⚹⚺', '⚻⚼⚽⚾⚿', '⛀⛁⛂⛃⛄']
+                ['⚬⚭⚮⚯⚰', '⚱⚲⚳⚴⚵', '⚶⚷⚸⚹⚺', '⚻⚼⚽⚾⚿', '⛀⛁⛂⛃⛄'],
+                ['11111', '33333', '55555', '77777', '99999'],
+                ['00000', '22222', '44444', '66666', '88888'],
+                ['△▲▴▵⟁', '▽▼▾▿⧨', '◁◀◤◥◣', '▷▶◢◣◤', '⬒⬓⬔⬕⬖'],
+                ['☉☼☀☁☂', '☃☄★☆✦', '✧✩✪✫✬', '✭✮✯✰✱', '☯☸☽☾☿'],
+                ['∞∴∵∶∷', '∑∏√∫∆', '≡≠≈≪≫', '⊕⊗⊘⊙⊚', '∧∨⊤⊥∩'],
+                ['▌▐█░▒▓', '╔═╗║╚╝', '┌─┬┐│└┴┘', '▁▂▃▄▅', '▆▇█▉▊'],
+                ['←↑→↓↔', '⇐⇑⇒⇓⇕', '⟵⟶⟷⟸⟹', '➔➙➛➜➝', '↩↪↫↬↭'],
+                ['♡♥❤❥❣', '☘✿❀❁❃', '⚘⚜✠✣✤', '✥✦✧★☆', '☄☀☁☂☃']
             ];
 
             this.currentPattern = 0;
@@ -327,26 +338,15 @@
             return { x: targetX, y: targetY };
         }
 
-        getInfinityTarget() {
-            const scaleX = window.innerWidth * 0.35;   // width of lobes
-            const scaleY = window.innerHeight * 0.35;  // height of lobes
-            const centerX = this.squareCenter.x;
-            const centerY = this.squareCenter.y;
-
-            const t = this.infinityProgress * Math.PI * 2;
-
-            // Clean sideways figure-8
-            const x = centerX + scaleX * Math.sin(t);
-            const y = centerY + scaleY * Math.sin(t) * Math.cos(t);
-
-            return { x, y };
-        }
-
-
         updateMovement() {
             if (this.isDestroyed) return;
 
             this.time += 0.05;
+
+            // Prevent time overflow - reset every ~10 minutes to avoid precision issues
+            if (this.time > 1000) {
+                this.time = this.time % (Math.PI * 2); // Keep it within reasonable range
+            }
 
             // Check for pattern triggers
             if (this.energy <= 50 && this.patternState === 'none' && !this.isMouseDown) {
@@ -357,6 +357,7 @@
                 this.patternState = 'square';
                 this.squareCorner = 0;
                 this.squareProgress = 0;
+                this.squarePasses = 0;
                 this.setState('square pattern');
                 console.log(`Starting maximum square pattern - size: ${this.squareSize}px (95% of playground)`);
             }
@@ -377,18 +378,20 @@
                         // completed one full lap
                         this.squarePasses = (this.squarePasses || 0) + 1;
 
-                        if (this.squarePasses >= 2) { // ⬅️ only after 2 laps
-                            this.patternState = 'infinity';
-                            this.infinityProgress = 0;
-                            this.infinityPasses = 0;
-                            this.setState('infinity pattern');
+                        if (this.squarePasses >= 2) { // after 2 laps, switch to big circle
+                            this.patternState = 'bigcircle';
+                            this.circleProgress = 0;
+                            this.circlePasses = 0;
+                            this.circlePhase = null;
+                            this.setState('big circle pattern');
                             this.squarePasses = 0; // reset counter
+                            console.log('Switching to big circle pattern');
                             return;
                         }
                     }
                 }
 
-                const speed = 20; // head speed on square
+                const speed = 12; // head speed on square (10 + 20% = 12)
                 this.velocity.x = (dx / dist) * speed;
                 this.velocity.y = (dy / dist) * speed;
 
@@ -396,101 +399,60 @@
                 head.targetY = head.y + this.velocity.y;
 
                 this.energy = Math.max(0, this.energy - 0.05);
-            } else if (this.patternState === 'infinity') {
+            } else if (this.patternState === 'bigcircle') {
                 const head = this.segments[0];
                 const centerX = this.squareCenter.x;
                 const centerY = this.squareCenter.y;
 
-                // Much bigger circles (x3 from before)
-                const radius = Math.min(window.innerWidth, window.innerHeight) * 3;
+                // Calculate circle radius - use 80% of available space for safety
+                const maxRadius = Math.min(
+                    (window.innerWidth - 40) / 2,   // 20px padding on each side
+                    (window.innerHeight - 40) / 2   // 20px padding top and bottom
+                ) * 0.8; // Use 80% for comfortable margin
 
-                // Step 1: Move to center before starting infinity
-                if (!this.infinityPhase) {
-                    const dx = centerX - head.x;
-                    const dy = centerY - head.y;
-                    const dist = Math.hypot(dx, dy);
-                    const speed = 25;
+                // Always advance the circle progress to keep moving
+                this.circleProgress += 0.004; // Constant circular motion speed
 
-                    if (dist > 10) {
-                        this.velocity.x = (dx / dist) * speed;
-                        this.velocity.y = (dy / dist) * speed;
-                        head.targetX = head.x + this.velocity.x;
-                        head.targetY = head.y + this.velocity.y;
-                        return; // don’t start infinity until centered
-                    } else {
-                        // snap into infinity start
-                        this.infinityPhase = "rightCircle";
-                        this.infinityProgress = 0;
-                    }
-                }
+                // Smooth circular motion - counter-clockwise starting from top
+                const angle = this.circleProgress * Math.PI * 2 - Math.PI / 2; // Start at top (-π/2)
+                const targetX = centerX + maxRadius * Math.cos(angle);
+                const targetY = centerY + maxRadius * Math.sin(angle);
 
-                // Step 2: Infinity loop (right circle → cross → left circle → cross)
-                let target = { x: head.x, y: head.y };
+                // Calculate velocity to move toward the target position
+                const dx = targetX - head.x;
+                const dy = targetY - head.y;
+                const dist = Math.hypot(dx, dy) || 1; // Prevent division by zero
+                const speed = 15; // Consistent movement speed
 
-                if (this.infinityPhase === "rightCircle") {
-                    const cx = centerX + radius;
-                    const cy = centerY;
-                    const angle = Math.PI * 2 * this.infinityProgress;
-                    target.x = cx + radius * Math.cos(angle);
-                    target.y = cy + radius * Math.sin(angle);
-                    this.infinityProgress += 0.005;
-                    if (this.infinityProgress >= 1) {
-                        this.infinityPhase = "crossToLeft";
-                        this.infinityProgress = 0;
-                    }
-                }
-                else if (this.infinityPhase === "crossToLeft") {
-                    target.x = centerX - radius;
-                    target.y = centerY;
-                    this.infinityProgress += 0.01;
-                    if (this.infinityProgress >= 1) {
-                        this.infinityPhase = "leftCircle";
-                        this.infinityProgress = 0;
-                    }
-                }
-                else if (this.infinityPhase === "leftCircle") {
-                    const cx = centerX - radius;
-                    const cy = centerY;
-                    const angle = Math.PI * 2 * this.infinityProgress;
-                    target.x = cx + radius * Math.cos(angle);
-                    target.y = cy + radius * Math.sin(angle);
-                    this.infinityProgress += 0.005;
-                    if (this.infinityProgress >= 1) {
-                        this.infinityPhase = "crossToRight";
-                        this.infinityProgress = 0;
-                    }
-                }
-                else if (this.infinityPhase === "crossToRight") {
-                    target.x = centerX + radius;
-                    target.y = centerY;
-                    this.infinityProgress += 0.01;
-                    if (this.infinityProgress >= 1) {
-                        this.infinityPhase = "rightCircle";
-                        this.infinityProgress = 0;
-                        this.infinityPasses++;
-                    }
-                }
-
-                // move head toward target
-                const dx = target.x - head.x;
-                const dy = target.y - head.y;
-                const dist = Math.hypot(dx, dy);
-                const speed = 8;
+                // Set velocity to move toward target
                 this.velocity.x = (dx / dist) * speed;
                 this.velocity.y = (dy / dist) * speed;
 
+                // Update head target position
                 head.targetX = head.x + this.velocity.x;
                 head.targetY = head.y + this.velocity.y;
 
-                // restore energy gradually
-                this.energy = Math.min(100, this.energy + 0.02);
+                // Check if we completed a full circle
+                if (this.circleProgress >= 1.0) {
+                    this.circleProgress = 0; // Reset for next circle
+                    this.circlePasses++;
+                    console.log(`Completed circle ${this.circlePasses} - Energy: ${Math.round(this.energy)}%`);
+                }
+
+                // Gradually restore energy during circle pattern
+                this.energy = Math.min(100, this.energy + 0.035);
+
+                // Continue circling until energy reaches 100%
                 if (this.energy >= 100) {
                     this.patternState = 'none';
                     this.setState('wandering');
-                    this.infinityPhase = null;
+                    this.circlePhase = null;
+                    this.circlePasses = 0;
+                    console.log(`Big circle pattern complete - Energy restored to ${Math.round(this.energy)}% - returning to wandering`);
+                    return;
                 }
-
             } else {
+                // Normal wandering/following behavior
                 this.energy = Math.max(0, this.energy - 0.02);
 
                 this.patternTimer++;
@@ -566,12 +528,12 @@
         updateSegments() {
             if (this.isDestroyed || this.segments.length === 0) return;
 
-            this.segments[0].x += (this.segments[0].targetX - this.segments[0].x) * 0.25; // was 0.1
+            // Head follows its target position
+            this.segments[0].x += (this.segments[0].targetX - this.segments[0].x) * 0.25;
             this.segments[0].y += (this.segments[0].targetY - this.segments[0].y) * 0.25;
 
-            let targetDistance = this.patternState !== 'none' ? 45 : 25;
-            let followSpeed   = this.patternState !== 'none' ? 0.8 : 0.3; // faster in patterns
-
+            let targetDistance = this.patternState !== 'none' ? 45 : 25;//added..
+            let followSpeed   = this.patternState !== 'none' ? 0.8 : 0.3;
 
             if (this.patternState !== 'none') {
                 // During patterns, allow much more stretching and faster following
@@ -579,6 +541,7 @@
                 followSpeed = 0.6; // Follow faster to keep up with head movement
             }
 
+            // Body segments follow the segment in front of them
             for (let i = 1; i < this.segments.length; i++) {
                 const prev = this.segments[i - 1];
                 const seg = this.segments[i];
@@ -602,26 +565,32 @@
                 seg.x += (seg.targetX - seg.x) * 0.4;
                 seg.y += (seg.targetY - seg.y) * 0.4;
             }
-
             const head = this.segments[0];
             head.x += (head.targetX - head.x) * 0.5;
             head.y += (head.targetY - head.y) * 0.5;
 
+            // Update visual elements for all segments
             this.segments.forEach((segment, index) => {
                 if (segment.element) {
                     segment.element.style.left = segment.x + 'px';
                     segment.element.style.top = segment.y + 'px';
 
+                    // Calculate rotation values with bounded time to prevent overflow (faster rotation starting from head)
                     const patternSpeedBoost = (this.patternState !== 'none') ? 2 : 1;
-                    const baseRotationSpeed = 0.05 * 1.5 * (this.energy / 50 + 0.5) * patternSpeedBoost;
+                    const baseRotationSpeed = 0.5 * 1.5 * (this.energy / 50 + 0.5) * patternSpeedBoost; // 0.035 * 1.15 = 0.04025
                     const speed = Math.hypot(this.velocity.x, this.velocity.y);
-                    const movementBoost = speed * 0.03 * 1.5;
+                    const movementBoost = speed * 0.03 * 1.5; // 0.02 * 1.15 = 0.023
                     this.segmentRotations[index] = this.time * (baseRotationSpeed + movementBoost) + index * 0.3;
+
+
+                    // Use modular arithmetic to keep rotation values bounded - rotation starts from head (index 0)
+                    const rotationBase = (this.time * (baseRotationSpeed + movementBoost) + (this.length - 1 - index) * 0.3) % (Math.PI * 2);
+                    //this.segmentRotations[index] = rotationBase;
 
                     const zOffset = Math.sin(this.time + index * 0.2) * 5;
                     const rotationY = this.segmentRotations[index] * 10;
                     const rotationZ = Math.sin(this.time * 0.5 + index * 0.3) * 5;
-                    const scale = 1 + (Math.sin(this.segmentRotations[index]) * 0.1);
+                    const scale = 1 + (Math.sin(rotationBase) * 0.1);
 
                     segment.element.style.transform = `
                         translateZ(${zOffset}px)
@@ -636,8 +605,9 @@
                         segment.element.textContent = newChar;
                     }
 
+                    // Keep hue values bounded to prevent color overflow
                     const patternHueBoost = (this.patternState !== 'none') ? 50 : 0;
-                    const hueShift = (this.segmentRotations[index] * 20 + zOffset * 2 + patternHueBoost) % 360;
+                    const hueShift = ((rotationBase * 20) + (zOffset * 2) + patternHueBoost) % 360;
                     if (index === 0) {
                         segment.element.style.filter = `hue-rotate(${hueShift}deg) brightness(${1.2 + Math.sin(this.time + index) * 0.2})`;
                     } else if (index === this.length - 1) {
@@ -656,7 +626,6 @@
 
         animate() {
             if (this.isDestroyed) return;
-
             this.updateMovement();
             this.updateSegments();
             this.animationId = requestAnimationFrame(() => this.animate());
@@ -664,20 +633,16 @@
 
         cleanup() {
             this.isDestroyed = true;
-
             if (this.animationId) {
                 cancelAnimationFrame(this.animationId);
             }
-
             document.removeEventListener('mousemove', this.mouseMoveHandler);
             document.removeEventListener('mousedown', this.mouseDownHandler);
             document.removeEventListener('mouseup', this.mouseUpHandler);
-
             if (this.playground) {
                 const segments = this.playground.querySelectorAll('.centipede-segment, .particle');
                 segments.forEach(segment => segment.remove());
             }
-
             this.segments = [];
         }
     }
