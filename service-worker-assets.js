@@ -73,7 +73,7 @@
       "url": "favicon.ico"
     },
     {
-      "hash": "sha256-oEo6d+KqX5fjxTiZk\/w9NB3Mi0+ycS5yLwCKwr4IkbA=",
+      "hash": "sha256-AiE0E8F6724LeonhJuVPQm\/22Q18WondHpZQVrFHxOY=",
       "url": "icon-512.png"
     },
     {
@@ -125,7 +125,7 @@
       "url": "_framework\/icudt_no_CJK.dat"
     },
     {
-      "hash": "sha256-QyaqWc9q1eFDcBueXxNm389axtDlOwKePHHrxMTYt3A=",
+      "hash": "sha256-AgJpH1KR+jqWopAIxalGF2R7Nw5cXU67yR12yXW0gwY=",
       "url": "_framework\/blazor.boot.json"
     },
     {
@@ -137,7 +137,7 @@
       "url": "_framework\/Flurl.wasm"
     },
     {
-      "hash": "sha256-mtPsqBkutUCVHCXtrTK7FLxfrVxuQWYu5mOvcAlS9+c=",
+      "hash": "sha256-KvX2AmJ\/\/VojvrVvxeoofMU+hDva9qsrQd0K4JiNgK0=",
       "url": "_framework\/MichalMalenda.github.io.wasm"
     },
     {
@@ -465,5 +465,5 @@
       "url": "_content\/Syncfusion.Blazor.Spinner\/scripts\/spinner.min.js"
     }
   ],
-  "version": "icZ3KsLw"
+  "version": "luZiZBs1"
 };
