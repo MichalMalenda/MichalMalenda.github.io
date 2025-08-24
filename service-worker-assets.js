@@ -1,6 +1,10 @@
 ﻿self.assetsManifest = {
   "assets": [
     {
+      "hash": "sha256-07Abb6H0e8fgrurkdsbhjRecj751c\/Km6zjOF9B\/Jpg=",
+      "url": "_headers"
+    },
+    {
       "hash": "sha256-47DEQpj8HBSa+\/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
       "url": ".nojekyll"
     },
@@ -81,7 +85,7 @@
       "url": "images\/self_pic.jpg"
     },
     {
-      "hash": "sha256-OSJMLSuqPwqX+hJHq\/CSr\/ZdF9nI8wn49ZKKAlTsn2s=",
+      "hash": "sha256-q+p3\/lEmzgpw8j40d39y64BR\/NCrOIscwsUvQ1RJooc=",
       "url": "index.html"
     },
     {
@@ -125,7 +129,7 @@
       "url": "_framework\/icudt_no_CJK.dat"
     },
     {
-      "hash": "sha256-Dr9G8T5L3SuOaTshCIIxEbi1kWzSt8Tzxu1bHbUYu8Q=",
+      "hash": "sha256-vti6\/KsuOAquzRnXxeH0bsbJCb\/QLpxULGLQwBTxfqc=",
       "url": "_framework\/blazor.boot.json"
     },
     {
@@ -137,7 +141,7 @@
       "url": "_framework\/Flurl.wasm"
     },
     {
-      "hash": "sha256-hbWd5IY8h0ysJxkEp5odK9L9No58xWhUHZTd1\/oK8h0=",
+      "hash": "sha256-o\/C0wlIsT3GDRikhworzaz3GCNdTYnmQq8HBNYY8NPk=",
       "url": "_framework\/MichalMalenda.github.io.wasm"
     },
     {
@@ -465,5 +469,5 @@
       "url": "_content\/Syncfusion.Blazor.Spinner\/scripts\/spinner.min.js"
     }
   ],
-  "version": "JAe6st2+"
+  "version": "zhNSV9tJ"
 };
