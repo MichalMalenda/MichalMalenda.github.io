@@ -1,0 +1,419 @@
+﻿@page "/pomodoro-timer"
+@using System.Timers
+@implements IDisposable
+@inject IJSRuntime JSRuntime
+
+<h1>Pomodoro Timer</h1>
+
+<div class="upload-section">
+    <div class="timer-display">
+        <div class="time-text">@FormatTime(currentSeconds)</div>
+        <div class="session-label">@currentSessionType</div>
+    </div>
+
+    <div class="progress-ring">
+        <svg class="progress-svg" width="200" height="200">
+            <circle class="progress-background"
+                    cx="100" cy="100" r="90"
+                    fill="none"
+                    stroke="#333"
+                    stroke-width="8" />
+            <circle class="progress-bar"
+                    cx="100" cy="100" r="90"
+                    fill="none"
+                    stroke="#A5C9FF"
+                    stroke-width="8"
+                    stroke-dasharray="@circumference"
+                    stroke-dashoffset="@dashOffset"
+                    transform="rotate(-90 100 100)" />
+        </svg>
+    </div>
+</div>
+
+<div class="controls-section">
+    <div class="third-row">
+        <button class="timer-button"
+                @onclick="ToggleTimer">
+            @if (isRunning)
+            {
+                <span>Pause</span>
+            }
+            else
+            {
+                <span>@(isPaused ? "Resume" : "Start")</span>
+            }
+        </button>
+
+        <button class="timer-button"
+                @onclick="ResetTimer">
+            Reset
+        </button>
+
+        <button class="timer-button"
+                @onclick="SkipSession">
+            Skip
+        </button>
+    </div>
+
+    <div class="fourth-row">
+        <span class="radio-label">Session Type:</span>
+        <div class="action-controls">
+            <label class="radio-label">
+                <input type="radio" name="sessionType" value="work"
+                       @onchange="OnSessionTypeChange"
+                       checked="@(selectedSessionType == "work")"
+                       disabled="@isRunning" />
+                Work
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="sessionType" value="shortBreak"
+                       @onchange="OnSessionTypeChange"
+                       checked="@(selectedSessionType == "shortBreak")"
+                       disabled="@isRunning" />
+                Short Break
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="sessionType" value="longBreak"
+                       @onchange="OnSessionTypeChange"
+                       checked="@(selectedSessionType == "longBreak")"
+                       disabled="@isRunning" />
+                Long Break
+            </label>
+        </div>
+    </div>
+
+    <div class="fifth-row">
+        <div class="time-settings">
+            <div class="setting-group">
+                <span class="color-text">Work:</span>
+                <input type="range" min="1" max="60"
+                       @bind="workMinutes"
+                       @oninput="UpdateWorkTimeLive"
+                       class="tolerance-slider"
+                       disabled="@isRunning" />
+                <span class="color-text">@workMinutes min</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="fifth-row">
+        <div class="time-settings">
+            <div class="setting-group">
+                <span class="color-text">Short Break:</span>
+                <input type="range" min="1" max="30"
+                       @bind="shortBreakMinutes"
+                       @oninput="UpdateShortBreakTimeLive"
+                       class="tolerance-slider"
+                       disabled="@isRunning" />
+                <span class="color-text">@shortBreakMinutes min</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="fifth-row">
+        <div class="time-settings">
+            <div class="setting-group">
+                <span class="color-text">Long Break:</span>
+                <input type="range" min="5" max="60"
+                       @bind="longBreakMinutes"
+                       @oninput="UpdateLongBreakTimeLive"
+                       class="tolerance-slider"
+                       disabled="@isRunning" />
+                <span class="color-text">@longBreakMinutes min</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="fifth-row">
+        <div class="time-settings">
+            <div class="setting-group">
+                <span class="color-text">Volume:</span>
+                <input type="range" min="0" max="100"
+                       @bind="notificationVolume"
+                       class="tolerance-slider" />
+                <span class="color-text">@notificationVolume%</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="stats-section">
+        <div class="stat-item">
+            <span class="color-text">Sessions Completed:</span>
+            <span class="stat-value">@completedSessions</span>
+        </div>
+        <div class="stat-item">
+            <span class="color-text">Current Cycle:</span>
+            <span class="stat-value">@currentCycle / 4</span>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    private Timer? timer;
+    private int currentSeconds = 1500; // 25 minutes default
+    private int totalSeconds = 1500;
+    private bool isRunning = false;
+    private bool isPaused = false;
+
+    private string selectedSessionType = "work";
+    private string currentSessionType = "Work Session";
+
+    private int workMinutes = 25;
+    private int shortBreakMinutes = 5;
+    private int longBreakMinutes = 15;
+
+    private int notificationVolume = 50;
+
+    private int completedSessions = 0;
+    private int currentCycle = 1;
+
+    private double circumference = 2 * Math.PI * 90; // radius = 90
+    private double dashOffset = 0;
+
+    protected override void OnInitialized()
+    {
+        UpdateProgress();
+    }
+
+    private void ToggleTimer()
+    {
+        if (isRunning)
+        {
+            PauseTimer();
+        }
+        else
+        {
+            StartTimer();
+        }
+    }
+
+    private void StartTimer()
+    {
+        isRunning = true;
+        isPaused = false;
+
+        timer = new Timer(1000);
+        timer.Elapsed += OnTimerElapsed;
+        timer.Start();
+    }
+
+    private void PauseTimer()
+    {
+        isRunning = false;
+        isPaused = true;
+        timer?.Stop();
+        timer?.Dispose();
+    }
+
+    private void ResetTimer()
+    {
+        isRunning = false;
+        isPaused = false;
+        timer?.Stop();
+        timer?.Dispose();
+
+        SetSessionTime();
+        UpdateProgress();
+        StateHasChanged();
+    }
+
+    private void SkipSession()
+    {
+        timer?.Stop();
+        timer?.Dispose();
+        isRunning = false;
+        isPaused = false;
+
+        CompleteSession();
+    }
+
+    private async void OnTimerElapsed(object? sender, ElapsedEventArgs e)
+    {
+        currentSeconds--;
+        UpdateProgress();
+
+        await InvokeAsync(() => StateHasChanged());
+
+        if (currentSeconds <= 0)
+        {
+            await CompleteSessionAsync();
+        }
+    }
+
+    private async Task CompleteSessionAsync()
+    {
+        timer?.Stop();
+        timer?.Dispose();
+        isRunning = false;
+        isPaused = false;
+
+        // Play alarm sound
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("playAlarmSound", notificationVolume);
+        }
+        catch
+        {
+            // Fallback if audio fails
+        }
+
+        CompleteSession();
+        await InvokeAsync(() => StateHasChanged());
+    }
+
+    private void CompleteSession()
+    {
+        completedSessions++;
+
+        // Auto-switch to next session type based on Pomodoro technique
+        if (selectedSessionType == "work")
+        {
+            if (currentCycle % 4 == 0)
+            {
+                selectedSessionType = "longBreak";
+                currentSessionType = "Long Break";
+                currentCycle = 1;
+            }
+            else
+            {
+                selectedSessionType = "shortBreak";
+                currentSessionType = "Short Break";
+            }
+        }
+        else
+        {
+            selectedSessionType = "work";
+            currentSessionType = "Work Session";
+            if (currentCycle < 4)
+            {
+                currentCycle++;
+            }
+        }
+
+        SetSessionTime();
+        UpdateProgress();
+    }
+
+    private void OnSessionTypeChange(ChangeEventArgs e)
+    {
+        if (!isRunning)
+        {
+            selectedSessionType = e.Value?.ToString() ?? "work";
+            SetSessionType();
+            SetSessionTime();
+            UpdateProgress();
+        }
+    }
+
+    private void SetSessionType()
+    {
+        currentSessionType = selectedSessionType switch
+        {
+            "work" => "Work Session",
+            "shortBreak" => "Short Break",
+            "longBreak" => "Long Break",
+            _ => "Work Session"
+        };
+    }
+
+    private void SetSessionTime()
+    {
+        totalSeconds = selectedSessionType switch
+        {
+            "work" => workMinutes * 60,
+            "shortBreak" => shortBreakMinutes * 60,
+            "longBreak" => longBreakMinutes * 60,
+            _ => workMinutes * 60
+        };
+        currentSeconds = totalSeconds;
+    }
+
+    private void UpdateWorkTimeLive(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var minutes))
+        {
+            workMinutes = minutes;
+            if (!isRunning && selectedSessionType == "work")
+            {
+                SetSessionTime();
+                UpdateProgress();
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void UpdateShortBreakTimeLive(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var minutes))
+        {
+            shortBreakMinutes = minutes;
+            if (!isRunning && selectedSessionType == "shortBreak")
+            {
+                SetSessionTime();
+                UpdateProgress();
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void UpdateLongBreakTimeLive(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var minutes))
+        {
+            longBreakMinutes = minutes;
+            if (!isRunning && selectedSessionType == "longBreak")
+            {
+                SetSessionTime();
+                UpdateProgress();
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void UpdateProgress()
+    {
+        var progress = totalSeconds > 0 ? (double)(totalSeconds - currentSeconds) / totalSeconds : 0;
+        dashOffset = circumference * (1 - progress);
+    }
+
+    private string FormatTime(int seconds)
+    {
+        var minutes = seconds / 60;
+        var remainingSeconds = seconds % 60;
+        return $"{minutes:D2}:{remainingSeconds:D2}";
+    }
+
+    public void Dispose()
+    {
+        timer?.Stop();
+        timer?.Dispose();
+    }
+}
+
+<script>
+    window.playAlarmSound = (volumePercent) => {
+        const volume = volumePercent / 100;
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Play triple beep alarm sound
+        for (let i = 0; i < 3; i++) {
+            setTimeout(() => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+
+                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+            }, i * 400);
+        }
+    };
+</script>
