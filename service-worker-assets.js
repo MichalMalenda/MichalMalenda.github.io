@@ -129,7 +129,7 @@
       "url": "_framework\/icudt_no_CJK.dat"
     },
     {
-      "hash": "sha256-vti6\/KsuOAquzRnXxeH0bsbJCb\/QLpxULGLQwBTxfqc=",
+      "hash": "sha256-+MXlHM+Uqus1UH9AG4sWwHbAgcRy1pgF4jvlJwLyYp4=",
       "url": "_framework\/blazor.boot.json"
     },
     {
@@ -141,7 +141,7 @@
       "url": "_framework\/Flurl.wasm"
     },
     {
-      "hash": "sha256-o\/C0wlIsT3GDRikhworzaz3GCNdTYnmQq8HBNYY8NPk=",
+      "hash": "sha256-y+zcWwSyAHISqEAcsk6qbqmKeXDn44luC9dHQ5chsM4=",
       "url": "_framework\/MichalMalenda.github.io.wasm"
     },
     {
@@ -149,7 +149,7 @@
       "url": "_framework\/Microsoft.AspNetCore.Components.Forms.wasm"
     },
     {
-      "hash": "sha256-uvX7RraBAH+WgEsLUTscqr5rEUuTANCayygLHMpvtbY=",
+      "hash": "sha256-irir+CTGBS0k3RElU6AaGUmKqu0ptamJeemFGm56IMM=",
       "url": "_framework\/Microsoft.AspNetCore.Components.wasm"
     },
     {
@@ -253,11 +253,11 @@
       "url": "_framework\/System.ComponentModel.Annotations.wasm"
     },
     {
-      "hash": "sha256-1DlJSjZOSoHhgy19nm1LVBGJenrfomUbSRehcFULEPU=",
+      "hash": "sha256-Cl\/2eIrkIQyiKe2ZYh2eJZiovCS5KLn9omy4eYyRN0w=",
       "url": "_framework\/System.ComponentModel.Primitives.wasm"
     },
     {
-      "hash": "sha256-a2uDk2qzP+Cl8kJhWBdfdD8fk69LPAZDd5GdtsAbMlo=",
+      "hash": "sha256-yN8nnPF0TYKg3Nmy528Ymct9ObwEChpGCjoS5TH3GTk=",
       "url": "_framework\/System.ComponentModel.TypeConverter.wasm"
     },
     {
@@ -321,7 +321,7 @@
       "url": "_framework\/System.ObjectModel.wasm"
     },
     {
-      "hash": "sha256-XgZWAIv+IbYqDQ\/Ri8ADoq0ykVH9BbPW5wTfMd6si4k=",
+      "hash": "sha256-6n3yYnvEN2NGjurrn7P4LcpUExy4juyWTzebUCFTXZU=",
       "url": "_framework\/System.Private.CoreLib.wasm"
     },
     {
@@ -413,7 +413,7 @@
       "url": "_framework\/System.Xml.Linq.wasm"
     },
     {
-      "hash": "sha256-nTaoRAZUDanirTAo92heVlX2bFf03Ahm9T32ddg+b1Q=",
+      "hash": "sha256-Uz4NIKj1brR5gDNAf9soM4nXCPw2c\/tFVKXyMXojfm8=",
       "url": "MichalMalenda.github.io.styles.css"
     },
     {
@@ -469,5 +469,5 @@
       "url": "_content\/Syncfusion.Blazor.Spinner\/scripts\/spinner.min.js"
     }
   ],
-  "version": "zhNSV9tJ"
+  "version": "oU9\/ndMy"
 };

@@ -245,7 +245,6 @@ button[inherit-scope] {
         color: #212121;
     }
 /* /Pages/Eraser.razor.rz.scp.css */
-/* Use existing project styles */
 .upload-section[inherit-scope] {
     width: 100%;
     max-width: 600px;
@@ -478,6 +477,203 @@ h1[inherit-scope] {
             color: #A5C9FF;
             background-color: rgba(165, 201, 255, 0.1);
         }
+/* /Pages/PomodoroTimer.razor.rz.scp.css */
+.upload-section[inherit-scope] {
+    width: 100%;
+    max-width: 600px;
+    margin: 20px auto;
+    text-align: center;
+    position: relative;
+}
+
+.timer-display[inherit-scope] {
+    position: relative;
+    margin: 20px 0;
+}
+
+.time-text[inherit-scope] {
+    font-size: 3.5rem;
+    font-weight: bold;
+    color: #A5C9FF;
+    font-family: 'Courier New', monospace;
+    margin-bottom: 10px;
+}
+
+.session-label[inherit-scope] {
+    font-size: 1.2rem;
+    color: #e5e5e5;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+}
+
+.progress-ring[inherit-scope] {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.progress-svg[inherit-scope] {
+    transform: rotate(-90deg);
+}
+
+.progress-background[inherit-scope] {
+    opacity: 0.3;
+}
+
+.progress-bar[inherit-scope] {
+    transition: stroke-dashoffset 0.5s ease-in-out;
+}
+
+.timer-button[inherit-scope] {
+    background-color: black;
+    color: #e5e5e5;
+    border: 1px solid #333;
+    border-radius: 15px;
+    padding: 12px 20px;
+    margin: 0 10px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    width: 120px;
+    display: inline-block;
+}
+
+    .timer-button:hover[inherit-scope] {
+        border-color: #A5C9FF;
+        color: #A5C9FF;
+    }
+
+    .timer-button:focus[inherit-scope] {
+        outline: none;
+        border-color: #A5C9FF;
+    }
+
+.time-settings[inherit-scope] {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    max-width: 500px;
+}
+
+.setting-group[inherit-scope] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.stats-section[inherit-scope] {
+    margin: 30px 0;
+    padding: 20px;
+    background-color: #111;
+    border: 1px solid #333;
+    border-radius: 15px;
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.stat-item[inherit-scope] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.stat-value[inherit-scope] {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #A5C9FF;
+}
+
+.controls-section[inherit-scope] {
+    width: 100%;
+    max-width: 600px;
+    margin: 20px auto;
+}
+
+.third-row[inherit-scope], .fourth-row[inherit-scope], .fifth-row[inherit-scope] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 15px 0;
+    flex-wrap: wrap;
+}
+
+.action-controls[inherit-scope] {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-left: 10px;
+}
+
+.radio-label[inherit-scope] {
+    color: #e5e5e5;
+    margin-left: 5px;
+    cursor: pointer;
+}
+
+input[type="radio"][inherit-scope] {
+    margin: 0 5px;
+    accent-color: #A5C9FF;
+}
+
+h1[inherit-scope] {
+    text-align: center;
+    margin: 20px 0;
+    color: #e5e5e5;
+}
+
+.color-text[inherit-scope] {
+    color: #e5e5e5;
+    font-family: monospace;
+    white-space: nowrap;
+}
+
+.tolerance-slider[inherit-scope] {
+    width: 200px;
+    margin: 0 10px;
+    accent-color: #A5C9FF;
+}
+
+@media (max-width: 768px) {
+    .third-row[inherit-scope], .fourth-row[inherit-scope], .fifth-row[inherit-scope] {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .action-controls[inherit-scope] {
+        flex-direction: column;
+        gap: 10px;
+        margin: 0;
+    }
+
+    .tolerance-slider[inherit-scope] {
+        width: 250px;
+        margin: 10px 0;
+    }
+
+    .time-text[inherit-scope] {
+        font-size: 2.5rem;
+    }
+
+    .setting-group[inherit-scope] {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .stats-section[inherit-scope] {
+        flex-direction: column;
+    }
+
+    .timer-button[inherit-scope] {
+        margin: 5px;
+        min-width: 120px;
+    }
+}
 /* /Pages/TDEE.razor.rz.scp.css */
 /* Main Layout Containers */
 .left_display[inherit-scope] {
