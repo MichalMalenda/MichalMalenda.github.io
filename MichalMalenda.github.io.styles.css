@@ -495,7 +495,7 @@ h1[inherit-scope] {
     font-size: 3.5rem;
     font-weight: bold;
     color: #A5C9FF;
-    font-family: 'Courier New', monospace;
+    font-family: 'Consolas', monospace;
     margin-bottom: 10px;
 }
 
@@ -530,13 +530,19 @@ h1[inherit-scope] {
     color: #e5e5e5;
     border: 1px solid #333;
     border-radius: 15px;
-    padding: 12px 20px;
     margin: 0 10px;
     cursor: pointer;
     font-size: 1rem;
     transition: all 0.3s ease;
     width: 120px;
     display: inline-block;
+    text-align: center;
+    justify-content: center;
+    font-family: 'Consolas';
+    /*
+    padding: 12px 20px;
+    display: flex;
+    */
 }
 
     .timer-button:hover[inherit-scope] {
@@ -614,6 +620,7 @@ h1[inherit-scope] {
     color: #e5e5e5;
     margin-left: 5px;
     cursor: pointer;
+    font-family: 'Consolas';
 }
 
 input[type="radio"][inherit-scope] {
@@ -637,6 +644,18 @@ h1[inherit-scope] {
     width: 200px;
     margin: 0 10px;
     accent-color: #A5C9FF;
+}
+
+.setting-label[inherit-scope] {
+    display: inline-block;
+    width: 100px;
+    text-align: left;
+}
+
+.setting-value[inherit-scope] {
+    display: inline-block;
+    width: 60px;
+    text-align: right;
 }
 
 @media (max-width: 768px) {

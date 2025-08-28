@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!--<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -38,4 +38,18 @@
   </head>
   <body>
   </body>
+</html>-->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="refresh" content="0; url=./index.html?route=404#/" />
+    <script type="text/javascript">
+        // Take the current path and redirect to index.html with it as a query param
+        var redirectUrl = '/index.html?path=' + encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+        window.location.replace(redirectUrl);
+    </script>
+</head>
+<body>
+    <p>Redirecting...</p>
+</body>
 </html>
