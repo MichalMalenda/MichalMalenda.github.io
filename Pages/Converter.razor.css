@@ -1,96 +1,175 @@
-﻿.display {
-    border: 1px solid black;
+﻿.container_box {
+    width: 95%;
+    max-width: 1600px;
+    margin: 20px auto;
+    padding: 30px;
+    border: 1px solid #333;
+    border-radius: 15px;
+    background-color: rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
 }
-/*.top_display {
-    background-color: black;
-    border-radius: 25px;
-    height: 200px;
-    width: 80%;
+
+.main_content {
+    display: flex;
+    width: 100%;
+    gap: 30px;
+    justify-content: space-between;
+    align-items: flex-start;
 }
-.bottom_display {
-    background-color: red;
-    border-radius: 25px;
-    width: 80%;
-    height: 200px;
-}*/
+
+.left_sidebar {
+    flex: 0 0 200px;
+    text-align: left;
+}
+
+.input_output_area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 400px;
+}
+
+.right_sidebar {
+    flex: 0 0 200px;
+    text-align: left;
+}
+
+.radio_sidebar h3 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    color: #e5e5e5;
+    font-family: Consolas;
+}
+
+
+
+
+
+
+
+.left_display {
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    box-sizing: border-box;
+    padding: 0 20px;
+}
+
+/*.main_content {
+    display: flex;
+    width: 100%;
+    max-width: 1200px;
+    gap: 20px;
+    justify-content: flex-start;
+}
+    .radio_sidebar {
+    min-width: 150px;
+    max-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex-shrink: 0;
+}
+    .input_output_area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 800px;
+}
+*/
+
+.radio_option {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.text_area_wrapper, .output_wrapper {
+    width: 100%;
+}
+
 #text_field_in {
+    width: 100%;
+    height: 150px;
+    min-height: 150px;
+    max-height: 600px;
+    resize: vertical;
     border-radius: 15px;
-    margin: 20px;
+    margin: 20px 0;
     background-color: black;
     color: #e5e5e5;
-    width: 450px;
-    height: 150px;
     border: none;
-    resize: none;
     outline: none;
+    box-sizing: border-box;
+    padding: 10px;
+    font-family: inherit;
+    font-size: 1rem;
+    line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    overflow: auto;
+    display: block;
 }
-    #text_field_in:active {
-        border: none;
-    }
+
 #label_field_out {
+    width: 100%;
+    height: 150px;
+    min-height: 150px;
+    max-height: 600px;
+    resize: none;
     border-radius: 15px;
-    margin: 20px;
+    margin: 20px 0;
     background-color: black;
     color: #e5e5e5;
-    width: 450px;
-    height: 150px;
-}
-#error {
-    color: darkred;
-}
-#noterror {
-    color: #A5FFC9;
-}
-#result {
     border: none;
+    outline: none;
+    box-sizing: border-box;
+    padding: 10px;
+    font-family: inherit;
+    font-size: 1rem;
+    line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    overflow: auto;
+    display: block;
+    cursor: default;
+    user-select: text;
 }
-.result {
-    border: none;
-}
-#col{
-    width:200px;
-}
-#activity {
-    width: 175px;
-    height: 25px;
-    background-color: #212121;
-    box-shadow: none;
-    color: #e5e5e5;
-}
-.text_box_in {
-    width: 40px;
-    height: 25px;
-    background-color: #212121;
-    box-shadow: none;
-    color: #e5e5e5;
-}
-.text_box_label {
-    width: 100px;
-    height: 25px;
-    text-align: right;
-    display: inline-block;
-}
-button {
-    position: relative;
-    display: inline-block;
-    width: 100px;
-    height: 36px;
-    border-radius: 18px;
-    background-color: #A5C9FF;
-    border: solid 1px transparent;
-    color: #212121;
-    font-size: 18px;
-    font-weight: 300;
-    cursor: pointer;
-    transition: all .1s ease-in-out;
-}
-    button:hover {
-        background-color: transparent;
-        transition: all .1s ease-in-out;
-        color: #A5C9FF;
+
+    #label_field_out[readonly] {
+        cursor: default;
+        user-select: text;
     }
 
-    button:active {
-        background-color: #A5C9FF;
-        color: #212121;
+.sticky_right {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    margin: 20px 0;
+}
+
+    h1[style*="cursor: pointer"] {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        position: relative;
+        left: 50%;
+        transform: translateX(-50%);
     }
+
+        h1[style*="cursor: pointer"]:hover {
+            color: #A5C9FF;
+            background-color: rgba(165, 201, 255, 0.1);
+        }

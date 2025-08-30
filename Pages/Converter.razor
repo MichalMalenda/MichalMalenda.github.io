@@ -1,38 +1,238 @@
 ﻿@page "/converter"
+@inject IJSRuntime JS
 @using System.Text
-
 <title>Converter</title>
-<h1>Converter</h1>
-<div class="top_display">
-    <EditForm Model="@this">
-        <InputRadioGroup @bind-Value="selectedValue" @onchange="@(e=>{UpdateLabel();})">
-            <!--InputRadio Value=1>To Chr</InputRadio>To Chr-->
-            <InputRadio Value=1>To ASCII</InputRadio>To ASCII
-            <InputRadio Value=2>To UNICODE</InputRadio>To UNICODE
-        </InputRadioGroup>
-    </EditForm>
-</div>
-<div class="top_display">
-    <textarea type="text" id="text_field_in" name="text_field_in" placeholder="                                 Copy/Paste text here." 
-    @bind="InputValue" @oninput="@(e => { InputValue = e.Value.ToString(); UpdateLabel(); })"/>
-</div>
-<div class="bottom_display">
-    <label id="label_field_out">@LabelValue</label>
-</div>
 
+<h1 @onclick="ShowDescription" style="cursor: pointer;font-family:Consolas;">
+    Converter
+</h1>
+
+@if (!showTextD)
+{
+    <div class="container_box">
+        <div class="main_content">
+            <div class="radio_sidebar left_sidebar">
+                <h3>Convert To:</h3>
+                <EditForm Model="@this">
+                    <InputRadioGroup @bind-Value="selectedValue" @bind-Value:after="UpdateLabel">
+                        <div class="radio_option">
+                            <InputRadio Value="1" />
+                            <label>To ASCII</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="2" />
+                            <label>To UNICODE</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="3" />
+                            <label>To UTF-8</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="4" />
+                            <label>To UTF-16</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="5" />
+                            <label>To UTF-32</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="6" />
+                            <label>To Base64</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="9" />
+                            <label>To Hexadecimal</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="10" />
+                            <label>To Decimal</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="11" />
+                            <label>To Binary</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="12" />
+                            <label>To URL Encoding</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="13" />
+                            <label>To HTML Entities</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="14" />
+                            <label>Text Flipping</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="15" />
+                            <label>Text Mirroring</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="16" />
+                            <label>To Leetspeak</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="17" />
+                            <label>To ROT13</label>
+                        </div>
+                        <div class="radio_option caesar_option">
+                            <InputRadio Value="18" />
+                            <label>Caesar Cipher</label>
+                            <input type="number"
+                                   @bind="caesarShift"
+                                   @bind:event="oninput"
+                                   @onchange="@(() => { if (selectedValue == 18) UpdateLabel(); })"
+                                   min="1"
+                                   max="25"
+                                   class="caesar_input" />
+                        </div>
+                    </InputRadioGroup>
+                </EditForm>
+            </div>
+            <div class="input_output_area">
+                <div class="text_area_wrapper">
+                    <textarea id="text_field_in"
+                              name="text_field_in"
+                              placeholder="Copy/Paste text here."
+                              @bind="InputValue"
+                              @oninput="@(e => { InputValue = e.Value.ToString(); UpdateLabel(); })">
+                        </textarea>
+                </div>
+                <div class="output_wrapper">
+                    <textarea id="label_field_out" readonly>@LabelValue</textarea>
+                </div>
+            </div>
+            <div class="radio_sidebar right_sidebar">
+                <h3>Convert From:</h3>
+                <EditForm Model="@this">
+                    <InputRadioGroup @bind-Value="fromSelectedValue" @bind-Value:after="UpdateFromLabel">
+                        <div class="radio_option">
+                            <InputRadio Value="1" />
+                            <label>From ASCII</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="2" />
+                            <label>From UNICODE</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="3" />
+                            <label>From UTF-8</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="4" />
+                            <label>From UTF-16</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="5" />
+                            <label>From UTF-32</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="6" />
+                            <label>From Base64</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="9" />
+                            <label>From Hexadecimal</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="10" />
+                            <label>From Decimal</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="11" />
+                            <label>From Binary</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="12" />
+                            <label>From URL Encoding</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="13" />
+                            <label>From HTML Entities</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="16" />
+                            <label>From Leetspeak</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="17" />
+                            <label>From ROT13</label>
+                        </div>
+                        <div class="radio_option caesar_option">
+                            <InputRadio Value="18" />
+                            <label>Caesar Cipher</label>
+                            <input type="number"
+                                   @bind="caesarShift"
+                                   @bind:event="oninput"
+                                   @onchange="@(() => { if (selectedValue == 18) UpdateLabel(); })"
+                                   min="1"
+                                   max="25"
+                                   class="caesar_input" />
+                        </div>
+                    </InputRadioGroup>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+@if (showTextD)
+{
+    <div class="sticky_right">
+        Converter is a tool to quickly convert text to different formats for development and debugging purposes.
+        <br />
+        <br />
+        Simply paste your text in the input area and select your desired output format:
+        <br />
+        • <strong>To ASCII</strong> - Converts each character to its ASCII decimal value
+        <br />
+        • <strong>To UNICODE</strong> - Converts each character to its Unicode escape sequence (\\u format)
+        <br />
+        • <strong>To UTF-8</strong> - Converts text to UTF-8 byte representation in hexadecimal
+        <br />
+        • <strong>To UTF-16</strong> - Converts text to UTF-16 byte representation in hexadecimal
+        <br />
+        • <strong>To UTF-32</strong> - Converts text to UTF-32 byte representation in hexadecimal
+        <br />
+        <br />
+        Perfect for developers who need to quickly check character codes, debug text encoding issues, or convert text for use in code.
+        <br />
+        <br />
+        The conversion happens instantly as you type, with no data stored on any server.
+        <br />
+        <br />
+    </div>
+}
 
 @code {
+    private bool showTextD = false;
+    //private void ShowDescription() => showTextD = !showTextD;
     private FormModel formModel = new FormModel();
     private string InputValue { get; set; }
     private string LabelValue { get; set; }
     private string StringBuilder { get; set; }
     private int selectedValue = 0;
-    //private void UpdateLabel() {
-    //    LabelValue = InputValue.ToLower();
-    //}
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("setupResizeSync");
+        }
+    }
+
+    private async void ShowDescription()
+    {
+        showTextD = !showTextD;
+        StateHasChanged();
+        if (!showTextD)
+        {
+            await Task.Delay(50);
+            await JS.InvokeVoidAsync("resyncSizes");
+        }
+    }
+
     private string ConvertToUnicodeString(string input)
     {
-
         if (string.IsNullOrEmpty(input))
         {
             return string.Empty;
@@ -42,9 +242,36 @@
         {
             sb.AppendFormat("\\u{0:X4}", (int)c);
         }
-
         return sb.ToString();
     }
+
+    private string ConvertToUtf8(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        byte[] utf8Bytes = Encoding.UTF8.GetBytes(input);
+        return string.Join(" ", utf8Bytes.Select(b => b.ToString("X2")));
+    }
+
+    private string ConvertToUtf16(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        byte[] utf16Bytes = Encoding.Unicode.GetBytes(input);
+        return string.Join(" ", utf16Bytes.Select(b => b.ToString("X2")));
+    }
+
+    private string ConvertToUtf32(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        byte[] utf32Bytes = Encoding.UTF32.GetBytes(input);
+        return string.Join(" ", utf32Bytes.Select(b => b.ToString("X2")));
+    }
+
     private string ConvertToCharArray(string e)
     {
         formModel.InputString = e.ToString();
@@ -52,7 +279,6 @@
         formModel.CharArrayAsString = new string(formModel.CharArray);
         string result = new string(formModel.CharArray);
         return result;
-        //return formModel.ToString();
     }
 
     public class FormModel
@@ -62,8 +288,145 @@
         public string CharArrayAsString { get; set; } = string.Empty;
     }
 
+    private string ConvertToBase64(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        byte[] bytes = Encoding.UTF8.GetBytes(input);
+        return Convert.ToBase64String(bytes);
+    }
+
+
+
+    private string ConvertToHexadecimal(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        return string.Join(" ", input.Select(c => ((int)c).ToString("X2")));
+    }
+
+    private string ConvertToDecimal(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        return string.Join(" ", input.Select(c => ((int)c).ToString()));
+    }
+
+    private string ConvertToBinary(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        return string.Join(" ", input.Select(c => Convert.ToString(c, 2).PadLeft(8, '0')));
+    }
+
+    private string ConvertToUrlEncoding(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        return Uri.EscapeDataString(input);
+    }
+    private string ConvertToHtmlEntities(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        return System.Net.WebUtility.HtmlEncode(input);
+    }
+
+    private string FlipText(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        // Dictionary for flipped characters
+        var flipMap = new Dictionary<char, char>
+    {
+        {'a', 'ɐ'}, {'b', 'q'}, {'c', 'ɔ'}, {'d', 'p'}, {'e', 'ǝ'}, {'f', 'ɟ'}, {'g', 'ƃ'},
+        {'h', 'ɥ'}, {'i', 'ᴉ'}, {'j', 'ɾ'}, {'k', 'ʞ'}, {'l', 'l'}, {'m', 'ɯ'}, {'n', 'u'},
+        {'o', 'o'}, {'p', 'd'}, {'q', 'b'}, {'r', 'ɹ'}, {'s', 's'}, {'t', 'ʇ'}, {'u', 'n'},
+        {'v', 'ʌ'}, {'w', 'ʍ'}, {'x', 'x'}, {'y', 'ʎ'}, {'z', 'z'},
+        {'A', '∀'}, {'B', 'ᗺ'}, {'C', 'Ɔ'}, {'D', 'ᗡ'}, {'E', 'Ǝ'}, {'F', 'ᖴ'}, {'G', 'פ'},
+        {'H', 'H'}, {'I', 'I'}, {'J', 'ſ'}, {'K', 'ʞ'}, {'L', '˥'}, {'M', 'W'}, {'N', 'N'},
+        {'O', 'O'}, {'P', 'Ԁ'}, {'Q', 'Q'}, {'R', 'ᴿ'}, {'S', 'S'}, {'T', '┴'}, {'U', '∩'},
+        {'V', 'Λ'}, {'W', 'M'}, {'X', 'X'}, {'Y', '⅄'}, {'Z', 'Z'},
+        {'0', '0'}, {'1', 'Ɩ'}, {'2', 'ᄅ'}, {'3', 'Ɛ'}, {'4', 'ㄣ'}, {'5', 'ϛ'},
+        {'6', '9'}, {'7', 'ㄥ'}, {'8', '8'}, {'9', '6'},
+        {'.', '˙'}, {',', '\''}, {'?', '¿'}, {'!', '¡'}, {'"', '„'}, {'\'', ','},
+        {'(', ')'}, {')', '('}, {'[', ']'}, {']', '['}, {'{', '}'}, {'}', '{'},
+        {'<', '>'}, {'>', '<'}, {'&', '⅋'}
+    };
+
+        return new string(input.Reverse().Select(c => flipMap.ContainsKey(c) ? flipMap[c] : c).ToArray());
+    }
+
+    private string MirrorText(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        return new string(input.Reverse().ToArray());
+    }
+    private string ConvertToLeetspeak(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        var leetMap = new Dictionary<char, char>
+    {
+        {'a', '4'}, {'A', '4'}, {'e', '3'}, {'E', '3'}, {'i', '1'}, {'I', '1'},
+        {'o', '0'}, {'O', '0'}, {'s', '5'}, {'S', '5'}, {'t', '7'}, {'T', '7'},
+        {'l', '1'}, {'L', '1'}, {'g', '9'}, {'G', '9'}, {'b', '6'}, {'B', '6'},
+        {'z', '2'}, {'Z', '2'}, {'h', '#'}, {'H', '#'}
+    };
+
+        return new string(input.Select(c => leetMap.ContainsKey(c) ? leetMap[c] : c).ToArray());
+    }
+
+    private string ConvertToRot13(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        return new string(input.Select(c =>
+        {
+            if (c >= 'a' && c <= 'z')
+                return (char)((c - 'a' + 13) % 26 + 'a');
+            else if (c >= 'A' && c <= 'Z')
+                return (char)((c - 'A' + 13) % 26 + 'A');
+            else
+                return c;
+        }).ToArray());
+    }
+    private int caesarShift = 3;
+
+    private string ConvertToCaesarCipher(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        return new string(input.Select(c =>
+        {
+            if (c >= 'a' && c <= 'z')
+                return (char)((c - 'a' + caesarShift) % 26 + 'a');
+            else if (c >= 'A' && c <= 'Z')
+                return (char)((c - 'A' + caesarShift) % 26 + 'A');
+            else
+                return c;
+        }).ToArray());
+    }
     private void UpdateLabel()
     {
+        if (string.IsNullOrEmpty(InputValue))
+        {
+            LabelValue = selectedValue == 0 ? "Please choose which option would you like to use." : string.Empty;
+            return;
+        }
+
         switch (selectedValue)
         {
             case 1:
@@ -72,9 +435,198 @@
             case 2:
                 LabelValue = ConvertToUnicodeString(InputValue);
                 break;
+            case 3:
+                LabelValue = ConvertToUtf8(InputValue);
+                break;
+            case 4:
+                LabelValue = ConvertToUtf16(InputValue);
+                break;
+            case 5:
+                LabelValue = ConvertToUtf32(InputValue);
+                break;
+            case 6:
+                LabelValue = ConvertToBase64(InputValue);
+                break;
+            case 9:
+                LabelValue = ConvertToHexadecimal(InputValue);
+                break;
+            case 10:
+                LabelValue = ConvertToDecimal(InputValue);
+                break;
+            case 11:
+                LabelValue = ConvertToBinary(InputValue);
+                break;
+            case 12:
+                LabelValue = ConvertToUrlEncoding(InputValue);
+                break;
+            case 13:
+                LabelValue = ConvertToHtmlEntities(InputValue);
+                break;
+            case 14:
+                LabelValue = FlipText(InputValue);
+                break;
+            case 15:
+                LabelValue = MirrorText(InputValue);
+                break;
+            case 16:
+                LabelValue = ConvertToLeetspeak(InputValue);
+                break;
+            case 17:
+                LabelValue = ConvertToRot13(InputValue);
+                break;
+            case 18:
+                LabelValue = ConvertToCaesarCipher(InputValue);
+                break;
             default:
                 LabelValue = "Please choose which option would you like to use.";
                 break;
         }
     }
+
+
+
+
+
+
+
+
+    private int fromSelectedValue = 0;
+    private int fromCaesarShift = 3;
+
+    private void UpdateFromLabel()
+    {
+        if (string.IsNullOrEmpty(InputValue))
+        {
+            LabelValue = fromSelectedValue == 0 ? "Please choose which option would you like to use." : string.Empty;
+            return;
+        }
+
+        switch (fromSelectedValue)
+        {
+            case 1:
+                LabelValue = ConvertFromAscii(InputValue);
+                break;
+            case 2:
+                LabelValue = ConvertFromUnicode(InputValue);
+                break;
+            case 6:
+                LabelValue = ConvertFromBase64(InputValue);
+                break;
+            case 12:
+                LabelValue = ConvertFromUrlEncoding(InputValue);
+                break;
+            case 17:
+                LabelValue = ConvertFromRot13(InputValue);
+                break;
+            case 18:
+                LabelValue = ConvertFromCaesarCipher(InputValue);
+                break;
+            default:
+                LabelValue = "Please choose which option would you like to use.";
+                break;
+        }
+    }
+
+    private string ConvertFromAscii(string input)
+    {
+        try
+        {
+            var numbers = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return new string(numbers.Select(n => (char)int.Parse(n)).ToArray());
+        }
+        catch
+        {
+            return "Invalid ASCII format";
+        }
+    }
+
+    private string ConvertFromUnicode(string input)
+    {
+        try
+        {
+            var parts = input.Split(new string[] { "\\u" }, StringSplitOptions.RemoveEmptyEntries);
+            return new string(parts.Select(p => (char)Convert.ToInt32(p, 16)).ToArray());
+        }
+        catch
+        {
+            return "Invalid Unicode format";
+        }
+    }
+
+    private string ConvertFromBase64(string input)
+    {
+        try
+        {
+            byte[] bytes = Convert.FromBase64String(input);
+            return Encoding.UTF8.GetString(bytes);
+        }
+        catch
+        {
+            return "Invalid Base64 format";
+        }
+    }
+
+    private string ConvertFromUrlEncoding(string input)
+    {
+        try
+        {
+            return Uri.UnescapeDataString(input);
+        }
+        catch
+        {
+            return "Invalid URL encoding format";
+        }
+    }
+
+    private string ConvertFromRot13(string input)
+    {
+        return ConvertToRot13(input); // ROT13 is its own inverse
+    }
+
+    private string ConvertFromCaesarCipher(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        return new string(input.Select(c =>
+        {
+            if (c >= 'a' && c <= 'z')
+                return (char)((c - 'a' - fromCaesarShift + 26) % 26 + 'a');
+            else if (c >= 'A' && c <= 'Z')
+                return (char)((c - 'A' - fromCaesarShift + 26) % 26 + 'A');
+            else
+                return c;
+        }).ToArray());
+    }
 }
+
+<script>
+    window.setupResizeSync = () => {
+        const textarea1 = document.getElementById('text_field_in');
+        const textarea2 = document.getElementById('label_field_out');
+
+        if (textarea1 && textarea2) {
+            const syncSizes = () => {
+                const computedStyle1 = window.getComputedStyle(textarea1);
+                const actualWidth = computedStyle1.width;
+                const actualHeight = computedStyle1.height;
+
+                textarea2.style.width = actualWidth;
+                textarea2.style.height = actualHeight;
+                textarea2.style.resize = 'none';
+            };
+
+            const observer = new ResizeObserver(syncSizes);
+            observer.observe(textarea1);
+
+            setTimeout(syncSizes, 100);
+            window.addEventListener('resize', syncSizes);
+        }
+    };
+
+    window.resyncSizes = () => {
+        setTimeout(() => {
+            window.setupResizeSync();
+        }, 50);
+    };
+</script>
