@@ -115,59 +115,12 @@
                             <label>From UNICODE</label>
                         </div>
                         <div class="radio_option">
-                            <InputRadio Value="3" />
-                            <label>From UTF-8</label>
-                        </div>
-                        <div class="radio_option">
-                            <InputRadio Value="4" />
-                            <label>From UTF-16</label>
-                        </div>
-                        <div class="radio_option">
-                            <InputRadio Value="5" />
-                            <label>From UTF-32</label>
-                        </div>
-                        <div class="radio_option">
                             <InputRadio Value="6" />
                             <label>From Base64</label>
                         </div>
                         <div class="radio_option">
-                            <InputRadio Value="9" />
-                            <label>From Hexadecimal</label>
-                        </div>
-                        <div class="radio_option">
-                            <InputRadio Value="10" />
-                            <label>From Decimal</label>
-                        </div>
-                        <div class="radio_option">
-                            <InputRadio Value="11" />
-                            <label>From Binary</label>
-                        </div>
-                        <div class="radio_option">
                             <InputRadio Value="12" />
                             <label>From URL Encoding</label>
-                        </div>
-                        <div class="radio_option">
-                            <InputRadio Value="13" />
-                            <label>From HTML Entities</label>
-                        </div>
-                        <div class="radio_option">
-                            <InputRadio Value="16" />
-                            <label>From Leetspeak</label>
-                        </div>
-                        <div class="radio_option">
-                            <InputRadio Value="17" />
-                            <label>From ROT13</label>
-                        </div>
-                        <div class="radio_option caesar_option">
-                            <InputRadio Value="18" />
-                            <label>Caesar Cipher</label>
-                            <input type="number"
-                                   @bind="caesarShift"
-                                   @bind:event="oninput"
-                                   @onchange="@(() => { if (selectedValue == 18) UpdateLabel(); })"
-                                   min="1"
-                                   max="25"
-                                   class="caesar_input" />
                         </div>
                     </InputRadioGroup>
                 </EditForm>
@@ -421,6 +374,7 @@
     }
     private void UpdateLabel()
     {
+        fromSelectedValue = 0;
         if (string.IsNullOrEmpty(InputValue))
         {
             LabelValue = selectedValue == 0 ? "Please choose which option would you like to use." : string.Empty;
@@ -495,6 +449,7 @@
 
     private void UpdateFromLabel()
     {
+        selectedValue = 0;
         if (string.IsNullOrEmpty(InputValue))
         {
             LabelValue = fromSelectedValue == 0 ? "Please choose which option would you like to use." : string.Empty;
@@ -514,12 +469,6 @@
                 break;
             case 12:
                 LabelValue = ConvertFromUrlEncoding(InputValue);
-                break;
-            case 17:
-                LabelValue = ConvertFromRot13(InputValue);
-                break;
-            case 18:
-                LabelValue = ConvertFromCaesarCipher(InputValue);
                 break;
             default:
                 LabelValue = "Please choose which option would you like to use.";
