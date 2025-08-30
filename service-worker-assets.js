@@ -13,7 +13,7 @@
       "url": "404.html"
     },
     {
-      "hash": "sha256-iMTVZzYVe9jpUjwC6CnIYoiC3O\/ucr3h+6kidXE3KnM=",
+      "hash": "sha256-v52OVO10Dw8LRPtCeOgVZQQdnu56nsWgC3wWGUTK9bQ=",
       "url": "css\/app.css"
     },
     {
@@ -129,7 +129,7 @@
       "url": "_framework\/icudt_no_CJK.dat"
     },
     {
-      "hash": "sha256-+64knNxc6+QFAU8j+sJQVPVzdgwmtSdaulST63HBGp0=",
+      "hash": "sha256-YmHjy5ENezwN1BwNKwTUmajyiT6bI40TxTK2scLcPUw=",
       "url": "_framework\/blazor.boot.json"
     },
     {
@@ -141,7 +141,7 @@
       "url": "_framework\/Flurl.wasm"
     },
     {
-      "hash": "sha256-woQQzKxPEdT9H+QFfo2fUQvGm2GfodOkP3KC7xbuwCA=",
+      "hash": "sha256-jw04kQL6o\/5dgJplqWBtxq5DAMrXLocbuRVntK0a10A=",
       "url": "_framework\/MichalMalenda.github.io.wasm"
     },
     {
@@ -149,7 +149,7 @@
       "url": "_framework\/Microsoft.AspNetCore.Components.Forms.wasm"
     },
     {
-      "hash": "sha256-uvX7RraBAH+WgEsLUTscqr5rEUuTANCayygLHMpvtbY=",
+      "hash": "sha256-GCTXUmykk6uRMvrxo0ezItDwzydZowN\/g0SJmbBWaF8=",
       "url": "_framework\/Microsoft.AspNetCore.Components.wasm"
     },
     {
@@ -297,7 +297,7 @@
       "url": "_framework\/System.Linq.Expressions.wasm"
     },
     {
-      "hash": "sha256-QrlldI4SYu8g9O6aoFubuDdhOQop+UcQSAOnNtdc\/Wo=",
+      "hash": "sha256-lQ7aUliyFLEhVSZ5SFsAzwysPD\/ArI\/wijrXr5HWqDQ=",
       "url": "_framework\/System.Linq.wasm"
     },
     {
@@ -321,7 +321,7 @@
       "url": "_framework\/System.ObjectModel.wasm"
     },
     {
-      "hash": "sha256-EpdrUciOMNCXRa3BZSV87adp6QV6ldPztilZndCmax8=",
+      "hash": "sha256-rYR7A6fIABKAYdCsAYHaZwr8JENf7Fg2J+v1tCC855U=",
       "url": "_framework\/System.Private.CoreLib.wasm"
     },
     {
@@ -369,7 +369,7 @@
       "url": "_framework\/System.Runtime.Serialization.Primitives.wasm"
     },
     {
-      "hash": "sha256-YpUGL1o+JsYgD5WTCNkW\/ntl4TX7CLykPmsVX6YInak=",
+      "hash": "sha256-OXsE0MgO7\/SXsNxqJY8Yf4K7FrvmpdbrM3ZZoApCeBQ=",
       "url": "_framework\/System.Runtime.wasm"
     },
     {
@@ -417,7 +417,7 @@
       "url": "_framework\/System.Xml.Linq.wasm"
     },
     {
-      "hash": "sha256-okV9PXLE7jLySR+ula89583QNwMyAmNF2GMgMEAN1mI=",
+      "hash": "sha256-nbo2yjm3BU3RTBvdMC5mgeSDgftsTpxE1BdFUYrKrFA=",
       "url": "MichalMalenda.github.io.styles.css"
     },
     {
@@ -473,5 +473,5 @@
       "url": "_content\/Syncfusion.Blazor.Spinner\/scripts\/spinner.min.js"
     }
   ],
-  "version": "8qgrhuAM"
+  "version": "UCLn5zhJ"
 };
