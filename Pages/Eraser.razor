@@ -75,9 +75,13 @@
                 }
 
                 <div class="@(actionType == "replace" ? "fifth-row" : "fourth-row")">
-                    <label class="text_box_label" for="tolerance">Tolerance (@tolerance):</label>
+                    <label class="text_box_label" for="tolerance">
+                        Tolerance: <span class="tolerance-value">@currentToleranceDisplay</span>
+                    </label>
                     <input type="range" id="tolerance" class="tolerance-slider"
-                           min="0" max="255" value="@tolerance" @onchange="OnToleranceChanged" />
+                           min="0" max="255" value="@tolerance"
+                           @oninput="OnToleranceInput"
+                           @onchange="OnToleranceChanged" />
                 </div>
 
                 <div class="button_wrapper">
@@ -122,6 +126,7 @@
     private bool isProcessing = false;
     private string originalFileName = "";
     private bool showDescription = true; // Start with description visible, tool hidden
+    private int currentToleranceDisplay = 30;
 
     private void ToggleDescription()
     {
@@ -199,6 +204,7 @@
     private async Task OnToleranceChanged(ChangeEventArgs e)
     {
         tolerance = int.Parse(e.Value?.ToString() ?? "30");
+        currentToleranceDisplay = tolerance;
         await ProcessImage();
     }
 
@@ -243,6 +249,12 @@
             var fileName = fileNameWithoutExt + "_processed.png";
             await JSRuntime.InvokeVoidAsync("downloadImage", processedImageDataUrl, fileName);
         }
+    }
+    private void OnToleranceInput(ChangeEventArgs e)
+    {
+        // Update display value immediately without processing
+        currentToleranceDisplay = int.Parse(e.Value?.ToString() ?? "30");
+        StateHasChanged();
     }
 }
 
