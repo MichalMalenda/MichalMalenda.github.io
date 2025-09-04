@@ -1,0 +1,261 @@
+.main_container {
+    width: 100% !important;
+    margin: 0 auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+    padding: 0 20px !important;
+}
+
+.game_mode_selector {
+    display: flex !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    margin-bottom: 20px !important;
+    padding: 10px !important;
+    background-color: rgba(165, 201, 255, 0.05) !important;
+    border-radius: 10px !important;
+}
+
+.mode_button {
+    all: unset !important;
+    background-color: transparent !important;
+    color: #e5e5e5 !important;
+    border: 2px solid #555 !important;
+    border-radius: 10px !important;
+    padding: 8px 16px !important;
+    font-family: Consolas, monospace !important;
+    font-size: 0.9rem !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    display: inline-block !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
+    opacity: 0.7 !important;
+}
+
+    .mode_button:hover {
+        border-color: #A5C9FF !important;
+        color: #A5C9FF !important;
+        opacity: 1 !important;
+    }
+
+    .mode_button.active {
+        background-color: #A5C9FF !important;
+        color: black !important;
+        border-color: #A5C9FF !important;
+        opacity: 1 !important;
+        font-weight: bold !important;
+    }
+
+.game_container {
+    width: 100% !important;
+    max-width: 500px !important;
+    min-width: 300px !important;
+    margin: 20px auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+}
+
+.game_board {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    grid-template-rows: repeat(3, 1fr) !important;
+    gap: 3px !important;
+    background-color: #A5C9FF !important;
+    padding: 3px !important;
+    border-radius: 15px !important;
+    margin: 20px 0 !important;
+    width: 400px !important;
+    height: 400px !important;
+    min-height: 300px !important;
+    min-width: 300px !important;
+    box-sizing: border-box !important;
+    flex-direction: unset !important;
+    flex-wrap: unset !important;
+}
+
+.cell {
+    all: unset !important;
+    background-color: #212121 !important;
+    color: #A5C9FF !important;
+    font-family: Consolas, monospace !important;
+    font-size: 2rem !important;
+    font-weight: bold !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    aspect-ratio: 1/1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 12px !important;
+}
+
+    .cell:first-child {
+        border-top-left-radius: 12px !important;
+    }
+
+    .cell:nth-child(3) {
+        border-top-right-radius: 12px !important;
+    }
+
+    .cell:nth-child(7) {
+        border-bottom-left-radius: 12px !important;
+    }
+
+    .cell:last-child {
+        border-bottom-right-radius: 12px !important;
+    }
+
+    .cell:hover:not(.taken):not(:disabled) {
+        background-color: rgba(165, 201, 255, 0.2) !important;
+        color: #A5C9FF !important;
+    }
+
+    .cell.taken {
+        cursor: not-allowed !important;
+    }
+
+    .cell:disabled {
+        cursor: not-allowed !important;
+    }
+
+    .cell.x {
+        color: #ff6b6b !important;
+    }
+
+    .cell.o {
+        color: #4ecdc4 !important;
+    }
+
+.game_info {
+    text-align: center !important;
+    margin: 20px 0 !important;
+    font-size: 1.2rem !important;
+    color: #e5e5e5 !important;
+    font-family: Consolas, monospace !important;
+}
+
+.current_player {
+    color: #A5C9FF !important;
+    font-weight: bold !important;
+}
+
+.winner_x {
+    color: #ff6b6b !important;
+    font-weight: bold !important;
+}
+
+.winner_o {
+    color: #4ecdc4 !important;
+    font-weight: bold !important;
+}
+
+.button_wrapper {
+    display: flex !important;
+    justify-content: center !important;
+    gap: 20px !important;
+    margin-top: 20px !important;
+}
+
+    .button_wrapper button {
+        all: unset !important;
+        background-color: black !important;
+        color: #e5e5e5 !important;
+        border: 2px solid #A5C9FF !important;
+        border-radius: 15px !important;
+        padding: 10px 20px !important;
+        font-family: Consolas, monospace !important;
+        font-size: 1rem !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        display: inline-block !important;
+        box-sizing: border-box !important;
+        text-align: center !important;
+        text-decoration: none !important;
+        vertical-align: baseline !important;
+        white-space: nowrap !important;
+    }
+
+        .button_wrapper button:hover {
+            background-color: rgba(165, 201, 255, 0.1) !important;
+            color: #A5C9FF !important;
+        }
+
+.description_container {
+    width: 100% !important;
+    max-width: 800px !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+    padding: 20px !important;
+    line-height: 1.6 !important;
+    color: #e5e5e5 !important;
+    font-family: Consolas, monospace !important;
+}
+
+.score_board {
+    display: flex !important;
+    justify-content: space-around !important;
+    width: 100% !important;
+    max-width: 300px !important;
+    margin: 10px 0 !important;
+    padding: 10px !important;
+    background-color: rgba(165, 201, 255, 0.1) !important;
+    border-radius: 10px !important;
+}
+
+.score {
+    text-align: center !important;
+    font-family: Consolas, monospace !important;
+}
+
+.score_label {
+    font-size: 0.9rem !important;
+    opacity: 0.8 !important;
+    color: #e5e5e5 !important;
+    font-family: Consolas, monospace !important;
+}
+
+.score_value {
+    font-size: 1.2rem !important;
+    font-weight: bold !important;
+    font-family: Consolas, monospace !important;
+}
+
+.x_score {
+    color: #ff6b6b !important;
+}
+
+.o_score {
+    color: #4ecdc4 !important;
+}
+
+/* Title Styling - Clickable */
+h1 {
+    text-align: center !important;
+    margin: 20px 0 !important;
+    color: #e5e5e5 !important;
+    font-family: Consolas, monospace !important;
+}
+
+    /* Clickable title - only text area is clickable */
+    h1[style*="cursor: pointer"] {
+        display: inline-block !important;
+        padding: 8px 16px !important;
+        border-radius: 8px !important;
+        transition: all 0.2s ease !important;
+        position: relative !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+    }
+
+        h1[style*="cursor: pointer"]:hover {
+            color: #A5C9FF !important;
+            background-color: rgba(165, 201, 255, 0.1) !important;
+        }
