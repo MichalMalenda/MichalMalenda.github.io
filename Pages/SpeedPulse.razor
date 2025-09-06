@@ -1,0 +1,90 @@
+﻿@page "/speedtest"
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@using System.Threading
+
+<div class="speedpulse-container">
+    <div class="speedpulse-readout">
+        <strong>@(CurrentMbps.ToString("0.0")) Mbps</strong>
+        <span class="speedpulse-sub"> (last @LastSampleBytes KB in @LastSampleMs ms)</span>
+    </div>
+
+    <svg width="100%" height="120" viewBox="0 0 300 120" preserveAspectRatio="none"
+         class="speedpulse-chart">
+        <polyline points="@PointsAttr"
+                  fill="rgba(110,231,255,0.15)"
+                  stroke="#6ee7ff"
+                  stroke-width="2" />
+    </svg>
+
+    <div class="speedpulse-label">
+        sampling every 1s
+    </div>
+</div>
+
+@code {
+    private double CurrentMbps;
+    private int LastSampleBytes;
+    private double LastSampleMs;
+    private readonly List<double> _history = new();
+    private const int HistoryLength = 60;
+    private System.Threading.CancellationTokenSource? _cts;
+
+    protected override void OnInitialized()
+    {
+        for (int i = 0; i < HistoryLength; i++) _history.Add(0);
+        _cts = new();
+        _ = Task.Run(() => LoopAsync(_cts.Token));
+    }
+
+    private async Task LoopAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                var result = await JS.InvokeAsync<MeasureResult>("SpeedTest.measure", "speed.bin", 300_000);
+                Update(result.mbps, result.bytes / 1024, result.ms);
+            }
+            catch
+            {
+                Update(0, 0, 0);
+            }
+            await Task.Delay(1000, ct);
+        }
+    }
+
+    private void Update(double mbps, int bytesKb, double ms)
+    {
+        CurrentMbps = mbps;
+        LastSampleBytes = bytesKb;
+        LastSampleMs = ms;
+
+        _history.Add(mbps);
+        if (_history.Count > HistoryLength) _history.RemoveAt(0);
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string PointsAttr
+    {
+        get
+        {
+            const double W = 300.0, H = 120.0, pad = 4.0;
+            var max = Math.Max(5.0, Math.Min(200.0, _history.Max() * 1.2));
+            var dx = W / (HistoryLength - 1);
+
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < _history.Count; i++)
+            {
+                var x = i * dx;
+                var y = pad + (H - 2 * pad) * (1.0 - Math.Min(1.0, _history[i] / max));
+                sb.Append($"{x:0.##},{y:0.##} ");
+            }
+            sb.Append($"{W},{H - pad} 0,{H - pad}");
+            return sb.ToString();
+        }
+    }
+
+    private record MeasureResult(double mbps, int bytes, double ms);
+}

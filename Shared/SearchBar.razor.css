@@ -10,6 +10,7 @@
     color: white;
     border: none;
     border-radius: 5px;
+    flex: 1;
 }
 
 .gallery-container {
@@ -38,4 +39,29 @@
         background-color: #A5C9FF;
         color: #212121;
         font-weight: bold;
+    }
+
+.page-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 20px;
+}
+
+.cookie-clear-btn {
+    background-color: darkred;
+    color: #e5e5e5;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 25%;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+    height: 30px;
+    width: 30px;
+    transition: background-color 0.3s ease;
+}
+
+    .cookie-clear-btn:hover {
+        background-color: #212121;
     }

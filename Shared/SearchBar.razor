@@ -1,12 +1,19 @@
 ﻿@page "/"
+@using MichalMalenda.github.io.Pages
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
-<input type="text" 
-    @bind="searchTerm" 
-    @bind:event="oninput" 
-    placeholder="Search..." 
-    class="search-bar"
-    @onkeydown="HandleKeyDown" />
+
+
+<div class="page-header">
+    <button @onclick="ClearCookiesAndRefresh" class="cookie-clear-btn" title="(Ctrl+F5)"></button>
+    <input type="text"
+           @bind="searchTerm"
+           @bind:event="oninput"
+           placeholder="Search..."
+           class="search-bar"
+           @onkeydown="HandleKeyDown" />
+</div>
 
 <div class="gallery-container">
     @foreach (var tile in filteredTiles)
@@ -14,9 +21,14 @@
         <Tile Title="@tile.Title" Content="@tile.Content" Link="@tile.Link" />
     }
 </div>
+<div style="margin-top:2rem">
+    <SpeedPulse />
+</div>
+
 
 @code {
     private string searchTerm = string.Empty;
+
     private List<TileData> tiles = new List<TileData>
     {
         new TileData { Title = "2024-01-01", Content = "CV", Link="/about", Tag="CV,Michal Malenda,Michał Malenda,Malenda,Data Science,Experience,School,Education,Download"},
@@ -28,7 +40,7 @@
         new TileData { Title = "2025-08-24", Content = "Color Remover", Link="/color-remover", Tag="color, remover, tool, picture, image, edit"},
         new TileData { Title = "2025-08-28", Content = "Pomodoro Timer", Link="/pomodoro-timer", Tag="pomodoro, timer, clock, alarm, learning"},
         new TileData { Title = "2025-01-21", Content = "Tic Tac Toe", Link="/tictactoe", Tag="game, tic, tac, toe, tic tac toe, fun"},
-        new TileData { Title = "2027-01-21", Content = "WIP", Link="/", Tag="dev"},
+        new TileData { Title = "2027-01-21", Content = "Speed Test", Link="/speedtest", Tag="speed, speedtest, test, speed test, ping, internet"},
         new TileData { Title = "2027-01-21", Content = "WIP", Link="/", Tag="dev"},
         new TileData { Title = "2027-01-21", Content = "WIP", Link="/", Tag="dev"},
         new TileData { Title = "2027-01-21", Content = "WIP", Link="/", Tag="dev"},
@@ -49,6 +61,20 @@
         }
     }
 
+    private async Task ClearCookiesAndRefresh()
+    {
+        await JSRuntime.InvokeVoidAsync("eval", @"
+            document.cookie.split(';').forEach(function(c) {
+                document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+            });
+            if (typeof(Storage) !== 'undefined') {
+                localStorage.clear();
+                sessionStorage.clear();
+            }
+            location.reload(true);
+        ");
+    }
+
     private class TileData
     {
         public string Title { get; set; }
@@ -57,21 +83,3 @@
         public string Tag { get; set; }
     }
 }
-<!--
-<div class="search-bar">
-    <input bind="SearchText" bind:event="oninput" placeholder="Search..." />
-</div>
-
-code {
-    private string SearchText { get; set; } = string.Empty;
-    private void OnSearchChanged(ChangeEventArgs e)
-    {
-        SearchText = e.Value.ToString();
-        // Add your search logic here
-    }
-        private List<string> Items = new List<string> { "Apple", "Banana", "Cherry" };
-        private List<string> FilteredItems => Items
-            .Where(item => item.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-}
--->
