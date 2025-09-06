@@ -1,5 +1,6 @@
 ﻿@page "/"
 @inject NavigationManager Navigation
+@inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 
 
@@ -59,16 +60,8 @@
 
     private async Task ClearCookiesAndRefresh()
     {
-        await JSRuntime.InvokeVoidAsync("eval", @"
-            document.cookie.split(';').forEach(function(c) {
-                document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
-            });
-            if (typeof(Storage) !== 'undefined') {
-                localStorage.clear();
-                sessionStorage.clear();
-            }
-            location.reload(true);
-        ");
+        var uri = NavigationManager.Uri + "?nocache=" + Guid.NewGuid();
+        NavigationManager.NavigateTo(uri, forceLoad: true);
     }
 
     private class TileData
