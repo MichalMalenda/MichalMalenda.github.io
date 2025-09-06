@@ -1360,6 +1360,7 @@ h1[inherit-scope] {
     color: white;
     border: none;
     border-radius: 5px;
+    flex: 1;
 }
 
 .gallery-container[b-04mkm8iwjr] {
@@ -1388,6 +1389,31 @@ h1[inherit-scope] {
         background-color: #A5C9FF;
         color: #212121;
         font-weight: bold;
+    }
+
+.page-header[b-04mkm8iwjr] {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 20px;
+}
+
+.cookie-clear-btn[b-04mkm8iwjr] {
+    background-color: darkred;
+    color: #e5e5e5;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 25%;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+    height: 30px;
+    width: 30px;
+    transition: background-color 0.3s ease;
+}
+
+    .cookie-clear-btn:hover[b-04mkm8iwjr] {
+        background-color: #212121;
     }
 /* /Shared/Tile.razor.rz.scp.css */
 .search-bar[b-yyttsqt6cj] {

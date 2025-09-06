@@ -13,7 +13,7 @@
       "url": "404.html"
     },
     {
-      "hash": "sha256-v52OVO10Dw8LRPtCeOgVZQQdnu56nsWgC3wWGUTK9bQ=",
+      "hash": "sha256-dXA2Dc9cdVa02JXphFLxDkhWw0upQHxbMo1Cvt3W6iw=",
       "url": "css\/app.css"
     },
     {
@@ -85,7 +85,7 @@
       "url": "images\/self_pic.jpg"
     },
     {
-      "hash": "sha256-q+p3\/lEmzgpw8j40d39y64BR\/NCrOIscwsUvQ1RJooc=",
+      "hash": "sha256-Yahwzk9qIi3cRtdVwupwcFOKGmbs68EBAZJhSNCFcPo=",
       "url": "index.html"
     },
     {
@@ -95,6 +95,14 @@
     {
       "hash": "sha256-G2Gt\/NEghVOb03D3TQ6vquZsg+CQiQ\/oUFIZblldNJQ=",
       "url": "sample-data\/weather.json"
+    },
+    {
+      "hash": "sha256-WbWtdixPPSCYm+qAWwbjfZ25pBXUmeXOucCWoAThGB4=",
+      "url": "speed.bin"
+    },
+    {
+      "hash": "sha256-SKU\/5QoPAeUx3okuVnlhShWYsuzraRSvcE1X1zc5hYU=",
+      "url": "speedtest.js"
     },
     {
       "hash": "sha256-rcIWTVNnYus6VWf2Z2U1g\/JzlC07Ym02cFjHtI59Xsc=",
@@ -129,7 +137,7 @@
       "url": "_framework\/icudt_no_CJK.dat"
     },
     {
-      "hash": "sha256-sVz6A341x03VUDdSETj1RWEcV1SgLKhadhv5noCWtk0=",
+      "hash": "sha256-z9by7ybb3yZQcVVgtZ99z98QB6LFCJGwCT+XPhusfJo=",
       "url": "_framework\/blazor.boot.json"
     },
     {
@@ -141,7 +149,7 @@
       "url": "_framework\/Flurl.wasm"
     },
     {
-      "hash": "sha256-XrFkiGEvbugBKKFkc47ITb7LaGSwQD+rsjYurpEcr4Q=",
+      "hash": "sha256-mZ1ugmwymZCK05vxR9qW4ccNZAOKKudm1I3zRUyB4yI=",
       "url": "_framework\/MichalMalenda.github.io.wasm"
     },
     {
@@ -297,7 +305,7 @@
       "url": "_framework\/System.Linq.Expressions.wasm"
     },
     {
-      "hash": "sha256-lQ7aUliyFLEhVSZ5SFsAzwysPD\/ArI\/wijrXr5HWqDQ=",
+      "hash": "sha256-hY2PdlQA3zZCPmf9orDyBBlxO8bgwgqGuwl0wfE270Q=",
       "url": "_framework\/System.Linq.wasm"
     },
     {
@@ -321,7 +329,7 @@
       "url": "_framework\/System.ObjectModel.wasm"
     },
     {
-      "hash": "sha256-rYR7A6fIABKAYdCsAYHaZwr8JENf7Fg2J+v1tCC855U=",
+      "hash": "sha256-kQnPJKXU6XGK47jNUFE\/MNivtAEXRfBUxpuFsk1QAXk=",
       "url": "_framework\/System.Private.CoreLib.wasm"
     },
     {
@@ -369,7 +377,7 @@
       "url": "_framework\/System.Runtime.Serialization.Primitives.wasm"
     },
     {
-      "hash": "sha256-LnLKFTtQpGj9jxgDxCN6wvY54w6k5L\/3mGv\/5APP9a0=",
+      "hash": "sha256-gufWLEIwXtSuoyT3ACRUJap+D9axviOQ8L3lZ8DRnFs=",
       "url": "_framework\/System.Runtime.wasm"
     },
     {
@@ -417,7 +425,7 @@
       "url": "_framework\/System.Xml.Linq.wasm"
     },
     {
-      "hash": "sha256-XjL3masD8vzU\/OxptKLedFE+W\/SV82pOubJa21lImjo=",
+      "hash": "sha256-GX7AFu+HK33CgWW7jaCVsqlcTDOAm0u8e4pvmQw1W4o=",
       "url": "MichalMalenda.github.io.styles.css"
     },
     {
@@ -473,5 +481,5 @@
       "url": "_content\/Syncfusion.Blazor.Spinner\/scripts\/spinner.min.js"
     }
   ],
-  "version": "cWq\/zMYs"
+  "version": "ie8Bq8HH"
 };
