@@ -772,6 +772,82 @@ h1[inherit-scope] {
         min-width: 120px;
     }
 }
+/* /Pages/SpeedPulse.razor.rz.scp.css */
+.left_display[inherit-scope] {
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0 20px;
+}
+
+.button_wrapper[inherit-scope] {
+    display: flex;
+    justify-content: center;
+    width: 50%;
+    margin-top: 10px;
+}
+
+.sticky_left[inherit-scope],
+.sticky_right[inherit-scope] {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    padding: 20px;
+}
+
+h1[inherit-scope] {
+    text-align: center;
+    margin: 20px 0;
+}
+
+    h1[style*="cursor: pointer"][inherit-scope] {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        position: relative;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+        h1[style*="cursor: pointer"]:hover[inherit-scope] {
+            color: #A5C9FF;
+            background-color: rgba(165, 201, 255, 0.1);
+        }
+
+
+
+.speedpulse-container[inherit-scope] {
+    margin: 1rem auto;
+    font-family: Consolas;
+}
+
+.speedpulse-readout[inherit-scope] {
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+.speedpulse-sub[inherit-scope] {
+    opacity: 0.7;
+    margin-left: 6px;
+    font-size: 12px;
+}
+
+.speedpulse-chart[inherit-scope] {
+    background: #000000;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.speedpulse-label[inherit-scope] {
+    margin-top: 4px;
+    font-size: 11px;
+    opacity: 0.6;
+}
 /* /Pages/TDEE.razor.rz.scp.css */
 /* Main Layout Containers */
 .left_display[inherit-scope] {

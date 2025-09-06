@@ -13,7 +13,7 @@
       "url": "404.html"
     },
     {
-      "hash": "sha256-dXA2Dc9cdVa02JXphFLxDkhWw0upQHxbMo1Cvt3W6iw=",
+      "hash": "sha256-eKEkdFHTYz1ks6s4RCjXInuZ3Vu3oNZKnBuSojPQ6vw=",
       "url": "css\/app.css"
     },
     {
@@ -137,7 +137,7 @@
       "url": "_framework\/icudt_no_CJK.dat"
     },
     {
-      "hash": "sha256-z9by7ybb3yZQcVVgtZ99z98QB6LFCJGwCT+XPhusfJo=",
+      "hash": "sha256-hs9QbrFo+PW092SbWrxXnkFSNIjIBVogFexLSFLmfRM=",
       "url": "_framework\/blazor.boot.json"
     },
     {
@@ -149,7 +149,7 @@
       "url": "_framework\/Flurl.wasm"
     },
     {
-      "hash": "sha256-mZ1ugmwymZCK05vxR9qW4ccNZAOKKudm1I3zRUyB4yI=",
+      "hash": "sha256-rqa+HJTq1E7F4ItKiXg9gjlS3u1YF3JNb5UydEDOSNQ=",
       "url": "_framework\/MichalMalenda.github.io.wasm"
     },
     {
@@ -425,7 +425,7 @@
       "url": "_framework\/System.Xml.Linq.wasm"
     },
     {
-      "hash": "sha256-GX7AFu+HK33CgWW7jaCVsqlcTDOAm0u8e4pvmQw1W4o=",
+      "hash": "sha256-Tu4B2RyCVu7Mris79WTiqaUaodUfq4RFuVFAYbwS1KE=",
       "url": "MichalMalenda.github.io.styles.css"
     },
     {
@@ -481,5 +481,5 @@
       "url": "_content\/Syncfusion.Blazor.Spinner\/scripts\/spinner.min.js"
     }
   ],
-  "version": "ie8Bq8HH"
+  "version": "Rq3iSM9Z"
 };
