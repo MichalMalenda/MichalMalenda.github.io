@@ -2,25 +2,39 @@
 @using Microsoft.JSInterop
 @inject IJSRuntime JS
 @using System.Threading
+<title>Speed Test</title>
+<h1 @onclick="ShowDescription" style="cursor: pointer;font-family:Consolas;">
+    Speed Test
+</h1>
 
-<div class="speedpulse-container">
-    <div class="speedpulse-readout">
-        <strong>@(CurrentMbps.ToString("0.0")) Mbps</strong>
-        <span class="speedpulse-sub"> (last @LastSampleBytes KB in @LastSampleMs ms)</span>
+@if (!showTextD)
+{
+    <div class="left_display">
+        <div class="speedpulse-container">
+            <div class="speedpulse-readout">
+                <strong>@(CurrentMbps.ToString("0.0")) Mbps</strong>
+                <span class="speedpulse-sub"> (last @LastSampleBytes KB in @LastSampleMs ms)</span>
+            </div>
+            <svg width="100%" height="200" viewBox="0 0 450 200" preserveAspectRatio="none"
+                class="speedpulse-chart">
+                <polyline points="@PointsAttr"
+                      fill="#212121"
+                        stroke="#A5C9FF"
+                      stroke-width="2" />
+            </svg>
+            <div class="speedpulse-label">
+                sampling every 1s
+            </div>
+        </div>
     </div>
-
-    <svg width="100%" height="120" viewBox="0 0 300 120" preserveAspectRatio="none"
-         class="speedpulse-chart">
-        <polyline points="@PointsAttr"
-                  fill="rgba(110,231,255,0.15)"
-                  stroke="#6ee7ff"
-                  stroke-width="2" />
-    </svg>
-
-    <div class="speedpulse-label">
-        sampling every 1s
+}
+@if (showTextD)
+{
+    <div class="sticky_right">
+        This page measures "real-time" internet download speed by fetching 512 KB file and calculating the transfer rate in megabits per second(Mbps). It bypasses cache, tracks precise timing, and reports the total bytes received and duration in milliseconds for accurate performance sampling.
     </div>
-</div>
+}
+
 
 @code {
     private double CurrentMbps;
@@ -29,6 +43,9 @@
     private readonly List<double> _history = new();
     private const int HistoryLength = 60;
     private System.Threading.CancellationTokenSource? _cts;
+
+    private bool showTextD = false;
+    private void ShowDescription() => showTextD = !showTextD;
 
     protected override void OnInitialized()
     {
@@ -58,7 +75,7 @@
     {
         CurrentMbps = mbps;
         LastSampleBytes = bytesKb;
-        LastSampleMs = ms;
+        LastSampleMs = Math.Round(ms, 2);
 
         _history.Add(mbps);
         if (_history.Count > HistoryLength) _history.RemoveAt(0);
@@ -70,7 +87,7 @@
     {
         get
         {
-            const double W = 300.0, H = 120.0, pad = 4.0;
+            const double W = 450.0, H = 200.0, pad = 4.0;
             var max = Math.Max(5.0, Math.Min(200.0, _history.Max() * 1.2));
             var dx = W / (HistoryLength - 1);
 

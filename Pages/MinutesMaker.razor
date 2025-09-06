@@ -9,19 +9,7 @@
 <h1 @onclick="ShowDescription" style="cursor: pointer;font-family:Consolas;">
     Minutes Maker
 </h1>
-<script>
-    window.downloadFileFromStream = async (fileName, contentStreamReference) => {
-      const arrayBuffer = await contentStreamReference.arrayBuffer();
-      const blob = new Blob([arrayBuffer]);
-      const url = URL.createObjectURL(blob);
-      const anchorElement = document.createElement('a');
-      anchorElement.href = url;
-      anchorElement.download = fileName ?? '';
-      anchorElement.click();
-      anchorElement.remove();
-      URL.revokeObjectURL(url);
-    }
-</script>
+
 @if (!showTextD){
 
     <div class="left_display">
@@ -39,7 +27,6 @@
     </div>
 
 }
-
 @if (showTextD)
 {
     <div class="sticky_right">
@@ -105,3 +92,16 @@
         }
     }
 }
+<script>
+    window.downloadFileFromStream = async (fileName, contentStreamReference) => {
+      const arrayBuffer = await contentStreamReference.arrayBuffer();
+      const blob = new Blob([arrayBuffer]);
+      const url = URL.createObjectURL(blob);
+      const anchorElement = document.createElement('a');
+      anchorElement.href = url;
+      anchorElement.download = fileName ?? '';
+      anchorElement.click();
+      anchorElement.remove();
+      URL.revokeObjectURL(url);
+    }
+</script>
