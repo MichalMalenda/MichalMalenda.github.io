@@ -1,0 +1,242 @@
+@page "/arbitrage-calculator"
+@using System.Globalization;
+<title>Arbitrage Calculator</title>
+<h1 @onclick="ShowDescription" style="cursor: pointer;font-family:Consolas;">
+    Arbitrage Calculator
+</h1>
+
+@if (!showDescription)
+{
+    <div class="left_display">
+        <div class="input_section">
+            <div class="odds_wrapper">
+                <h3>Enter Odds</h3>
+                <div class="odds_input_group">
+                    <label for="odds1">Outcome 1 Odds:</label>
+                    <input type="number" id="odds1" step="0.01" min="1.01" @bind="Odds1" @oninput="Calculate" placeholder="e.g. 2.10" />
+                </div>
+                <div class="odds_input_group">
+                    <label for="odds2">Outcome 2 Odds:</label>
+                    <input type="number" id="odds2" step="0.01" min="1.01" @bind="Odds2" @oninput="Calculate" placeholder="e.g. 2.05" />
+                </div>
+                @if (HasThreeOutcomes)
+                {
+                    <div class="odds_input_group">
+                        <label for="odds3">Outcome 3 Odds:</label>
+                        <input type="number" id="odds3" step="0.01" min="1.01" @bind="Odds3" @oninput="Calculate" placeholder="e.g. 4.50" />
+                    </div>
+                }
+
+                <div class="checkbox_wrapper">
+                    <label>
+                        <input type="checkbox" @bind="HasThreeOutcomes" @bind:after="Calculate" />
+                        Three-way bet (e.g., Win/Draw/Lose)
+                    </label>
+                </div>
+            </div>
+
+            <div class="stake_wrapper">
+                <h3>Total Stake</h3>
+                <div class="odds_input_group">
+                    <label for="totalStake">Amount to invest:</label>
+                    <input type="number" id="totalStake" step="0.01" min="0" @bind="TotalStake" @oninput="Calculate" placeholder="100.00" />
+                </div>
+            </div>
+        </div>
+
+        <div class="results_wrapper">
+            @if (IsArbitrage)
+            {
+                <div class="results_success">
+                    <h3>Arbitrage Opportunity Found!</h3>
+                    <div class="result_item">
+                        <strong>Arbitrage Percentage:</strong> @ArbitragePercentage.ToString("F2")%
+                    </div>
+                    <div class="result_item">
+                        <strong>Guaranteed Profit:</strong> $@GuaranteedProfit.ToString("F2") (@ProfitPercentage.ToString("F2")%)
+                    </div>
+
+                    <h4>Stake Distribution:</h4>
+                    <div class="stakes_grid">
+                        <div class="stake_item">
+                            <span class="outcome_label">Outcome 1 (@Odds1):</span>
+                            <span class="stake_amount">$@Stake1.ToString("F2")</span>
+                        </div>
+                        <div class="stake_item">
+                            <span class="outcome_label">Outcome 2 (@Odds2):</span>
+                            <span class="stake_amount">$@Stake2.ToString("F2")</span>
+                        </div>
+                        @if (HasThreeOutcomes)
+                        {
+                            <div class="stake_item">
+                                <span class="outcome_label">Outcome 3 (@Odds3):</span>
+                                <span class="stake_amount">$@Stake3.ToString("F2")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            else if (HasValidOdds)
+            {
+                <div class="results_warning">
+                    <h3>No Arbitrage Opportunity</h3>
+                    <div class="result_item">
+                        <strong>Combined Probability:</strong> @ArbitragePercentage.ToString("F2")%
+                    </div>
+                    <div class="result_item">
+                        <strong>House Edge:</strong> @((ArbitragePercentage - 100).ToString("F2"))%
+                    </div>
+                    <p>You would need better odds to create an arbitrage opportunity.</p>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (showDescription)
+{
+    <div class="sticky_right">
+        <strong>Arbitrage Calculator</strong> is a tool for finding and calculating risk-free betting opportunities across different bookmakers.
+        <br /><br />
+
+        <strong>How Arbitrage Works - Example:</strong><br />
+        Let's say there's a tennis match between Player A and Player B. You find these odds:<br />
+        - Bookmaker 1: Player A wins at 2.10 (47.6% implied probability)<br />
+        - Bookmaker 2: Player B wins at 2.05 (48.8% implied probability)<br />
+        <br />
+        Combined probability: 47.6% + 48.8% = 96.4% (less than 100%)<br />
+        This creates a 3.6% arbitrage opportunity!<br />
+        <br />
+        With $1000 total stake:<br />
+        - Bet $488 on Player A at Bookmaker 1 (returns $1024.80 if A wins)<br />
+        - Bet $512 on Player B at Bookmaker 2 (returns $1049.60 if B wins)<br />
+        - Guaranteed profit: $24.80 regardless of who wins<br />
+        <br />
+
+        <strong>How to Use:</strong><br />
+        1. Enter odds from different bookmakers for the same event<br />
+        2. Enter your total investment amount<br />
+        3. Check if arbitrage percentage is below 100%<br />
+        4. If yes, follow the stake distribution shown<br />
+        5. Place bets at the respective bookmakers<br />
+        <br />
+
+        <strong>Features:</strong><br />
+        - Support for 2-way and 3-way markets<br />
+        - Automatic stake calculation for guaranteed profit<br />
+        - Real-time calculation as you type<br />
+        - Clear profit and percentage display<br />
+        <br />
+
+        <strong>Important Notes:</strong><br />
+        - Always verify odds are still available before placing bets<br />
+        - Odds can change quickly, so act fast on opportunities<br />
+        - Some bookmakers may limit accounts that consistently find arbitrage<br />
+        - Consider transaction fees and withdrawal limits<br />
+    </div>
+}
+
+@code {
+    private bool showDescription = false;
+    private bool HasThreeOutcomes = false;
+
+    private double Odds1 = 0;
+    private double Odds2 = 0;
+    private double Odds3 = 0;
+    private double TotalStake = 100;
+
+    private double ArbitragePercentage = 0;
+    private double GuaranteedProfit = 0;
+    private double ProfitPercentage = 0;
+    private double Stake1 = 0;
+    private double Stake2 = 0;
+    private double Stake3 = 0;
+
+    private bool IsArbitrage => ArbitragePercentage < 100 && ArbitragePercentage > 0;
+    private bool HasValidOdds => (Odds1 > 1 && Odds2 > 1) && (!HasThreeOutcomes || Odds3 > 1);
+
+    private void ShowDescription() => showDescription = !showDescription;
+
+    private void Calculate()
+    {
+        if (!HasValidOdds)
+        {
+            ResetCalculations();
+            return;
+        }
+
+        if (HasThreeOutcomes)
+        {
+            Calculate3Way();
+        }
+        else
+        {
+            Calculate2Way();
+        }
+    }
+
+    private void Calculate2Way()
+    {
+        // Calculate arbitrage percentage (implied probability)
+        ArbitragePercentage = (1 / Odds1 + 1 / Odds2) * 100;
+
+        if (IsArbitrage && TotalStake > 0)
+        {
+            // Calculate individual stakes
+            Stake1 = TotalStake / (1 + Odds1 / Odds2);
+            Stake2 = TotalStake / (1 + Odds2 / Odds1);
+
+            // Calculate guaranteed profit
+            double payout1 = Stake1 * Odds1;
+            double payout2 = Stake2 * Odds2;
+            GuaranteedProfit = Math.Min(payout1, payout2) - TotalStake;
+            ProfitPercentage = (GuaranteedProfit / TotalStake) * 100;
+        }
+        else
+        {
+            ResetStakes();
+        }
+    }
+
+    private void Calculate3Way()
+    {
+        // Calculate arbitrage percentage for 3-way
+        ArbitragePercentage = (1 / Odds1 + 1 / Odds2 + 1 / Odds3) * 100;
+
+        if (IsArbitrage && TotalStake > 0)
+        {
+            // Calculate individual stakes for 3-way arbitrage
+            double totalImpliedProb = 1 / Odds1 + 1 / Odds2 + 1 / Odds3;
+
+            Stake1 = TotalStake * (1 / Odds1) / totalImpliedProb;
+            Stake2 = TotalStake * (1 / Odds2) / totalImpliedProb;
+            Stake3 = TotalStake * (1 / Odds3) / totalImpliedProb;
+
+            // Calculate guaranteed profit
+            double payout1 = Stake1 * Odds1;
+            double payout2 = Stake2 * Odds2;
+            double payout3 = Stake3 * Odds3;
+            GuaranteedProfit = Math.Min(Math.Min(payout1, payout2), payout3) - TotalStake;
+            ProfitPercentage = (GuaranteedProfit / TotalStake) * 100;
+        }
+        else
+        {
+            ResetStakes();
+        }
+    }
+
+    private void ResetCalculations()
+    {
+        ArbitragePercentage = 0;
+        ResetStakes();
+    }
+
+    private void ResetStakes()
+    {
+        GuaranteedProfit = 0;
+        ProfitPercentage = 0;
+        Stake1 = 0;
+        Stake2 = 0;
+        Stake3 = 0;
+    }
+}

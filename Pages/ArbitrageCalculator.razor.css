@@ -1,0 +1,237 @@
+.left_display {
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0 20px;
+}
+
+.input_section {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    flex-direction: row;
+    gap: 40px;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+.odds_wrapper, .stake_wrapper {
+    flex: 1;
+    min-width: 280px;
+    background-color: black;
+    border-radius: 15px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+    .odds_wrapper h3, .stake_wrapper h3 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        color: #e5e5e5;
+        font-family: Consolas, monospace;
+        text-align: center;
+    }
+
+.odds_input_group {
+    margin-bottom: 15px;
+}
+
+    .odds_input_group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: white;
+        font-size: 0.9rem;
+    }
+
+    .odds_input_group input[type="number"] {
+        width: 100%;
+        padding: 10px;
+        border-radius: 8px;
+        border: 2px solid #ddd;
+        background-color: black;
+        color: #e5e5e5;
+        font-size: 1rem;
+        box-sizing: border-box;
+        outline: none;
+        transition: all 0.2s ease;
+    }
+
+        .odds_input_group input[type="number"]:focus {
+            border-color: #A5C9FF;
+            background-color: black;
+        }
+
+        .odds_input_group input[type="number"]::placeholder {
+            color: #212121;
+            font-style: italic;
+        }
+
+.checkbox_wrapper {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+    .checkbox_wrapper label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .checkbox_wrapper input[type="checkbox"] {
+        margin-right: 10px;
+        transform: scale(1.2);
+        cursor: pointer;
+    }
+
+.results_wrapper {
+    width: 100%;
+    max-width: 800px;
+    margin-top: 20px;
+}
+
+.results_success, .results_warning {
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+}
+
+.results_success {
+    background-color: #A5C9FF;
+    border: 2px solid black;
+}
+
+.results_warning {
+    background-color: #A5C9FF;
+    border: 2px solid black;
+}
+
+.results_success h3 {
+    color: black;
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-family: Consolas, monospace;
+}
+
+.results_warning h3 {
+    color: black;
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-family: Consolas, monospace;
+}
+
+.result_item {
+    margin-bottom: 12px;
+    font-size: 1rem;
+    color: black;
+}
+
+    .result_item strong {
+        color: black;
+        font-weight: 700;
+    }
+
+.results_warning .result_item strong {
+    color: black;
+}
+
+.stakes_grid {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.stake_item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background-color: #212121;
+    border-radius: 8px;
+}
+
+.outcome_label {
+    font-weight: 600;
+    color: white;
+}
+
+.stake_amount {
+    font-family: Consolas, monospace;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #e5e5e5;
+}
+
+.results_success h4 {
+    color: black;
+    margin-top: 25px;
+    margin-bottom: 15px;
+    font-family: Consolas, monospace;
+    font-size: 1.1rem;
+}
+
+.results_warning p {
+    margin-top: 15px;
+    color: black;
+    font-style: italic;
+}
+
+.sticky_right {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+/* Title Styling - Clickable */
+h1 {
+    text-align: center;
+    margin: 20px 0;
+}
+
+    h1[style*="cursor: pointer"] {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        position: relative;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+        h1[style*="cursor: pointer"]:hover {
+            color: #A5C9FF;
+            background-color: rgba(165, 201, 255, 0.1);
+        }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .input_section {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .odds_wrapper, .stake_wrapper {
+        min-width: unset;
+    }
+
+    .stake_item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .stakes_grid {
+        gap: 15px;
+    }
+}
