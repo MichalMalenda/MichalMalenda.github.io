@@ -35,3 +35,7 @@ self.addEventListener('fetch', event => {
         })
     );
 });
+
+self.addEventListener('activate', event => {
+    clients.claim(); // Forces all tabs to use the new SW
+});
