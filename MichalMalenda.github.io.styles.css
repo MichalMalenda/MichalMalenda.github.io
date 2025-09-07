@@ -237,32 +237,26 @@ h1[inherit-scope] {
     }
 }
 /* /Pages/BackButton.razor.rz.scp.css */
-body[inherit-scope] {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    background-color: #f0f0f0;
-}
-
 .back-button[inherit-scope] {
     position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 10px 20px;
-    background-color: #ff4757;
-    color: white;
+    top: 35px;
+    left: 14px;
+    padding: 8px 12px;
+    background-color: darkred;
+    white-space: nowrap;
+    color: #e5e5e5;
     border: none;
-    border-radius: 5px;
+    border-radius: 25%;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 14px;
+    z-index: 1000; /* Ensures it stays on top of other elements */
+    height: 30px;
+    width: 30px;
+    transition: background-color 0.3s ease;
 }
 
     .back-button:hover[inherit-scope] {
-        background-color: #ff3333;
-    }
-
-    .back-button:active[inherit-scope] {
-        background-color: #cc0000;
+        background-color: #212121;
     }
 /* /Pages/Companion.razor.rz.scp.css */
 body[inherit-scope] {
