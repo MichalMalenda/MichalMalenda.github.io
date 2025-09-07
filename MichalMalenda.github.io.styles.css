@@ -1,3 +1,241 @@
+/* /Pages/ArbitrageCalculator.razor.rz.scp.css */
+.left_display[inherit-scope] {
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0 20px;
+}
+
+.input_section[inherit-scope] {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    flex-direction: row;
+    gap: 40px;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+.odds_wrapper[inherit-scope], .stake_wrapper[inherit-scope] {
+    flex: 1;
+    min-width: 280px;
+    background-color: black;
+    border-radius: 15px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+    .odds_wrapper h3[inherit-scope], .stake_wrapper h3[inherit-scope] {
+        margin-top: 0;
+        margin-bottom: 20px;
+        color: #e5e5e5;
+        font-family: Consolas, monospace;
+        text-align: center;
+    }
+
+.odds_input_group[inherit-scope] {
+    margin-bottom: 15px;
+}
+
+    .odds_input_group label[inherit-scope] {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: white;
+        font-size: 0.9rem;
+    }
+
+    .odds_input_group input[type="number"][inherit-scope] {
+        width: 100%;
+        padding: 10px;
+        border-radius: 8px;
+        border: 2px solid #ddd;
+        background-color: black;
+        color: #e5e5e5;
+        font-size: 1rem;
+        box-sizing: border-box;
+        outline: none;
+        transition: all 0.2s ease;
+    }
+
+        .odds_input_group input[type="number"]:focus[inherit-scope] {
+            border-color: #A5C9FF;
+            background-color: black;
+        }
+
+        .odds_input_group input[type="number"][inherit-scope]::placeholder {
+            color: #212121;
+            font-style: italic;
+        }
+
+.checkbox_wrapper[inherit-scope] {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+    .checkbox_wrapper label[inherit-scope] {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .checkbox_wrapper input[type="checkbox"][inherit-scope] {
+        margin-right: 10px;
+        transform: scale(1.2);
+        cursor: pointer;
+    }
+
+.results_wrapper[inherit-scope] {
+    width: 100%;
+    max-width: 800px;
+    margin-top: 20px;
+}
+
+.results_success[inherit-scope], .results_warning[inherit-scope] {
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+}
+
+.results_success[inherit-scope] {
+    background-color: #A5C9FF;
+    border: 2px solid black;
+}
+
+.results_warning[inherit-scope] {
+    background-color: #A5C9FF;
+    border: 2px solid black;
+}
+
+.results_success h3[inherit-scope] {
+    color: black;
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-family: Consolas, monospace;
+}
+
+.results_warning h3[inherit-scope] {
+    color: black;
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-family: Consolas, monospace;
+}
+
+.result_item[inherit-scope] {
+    margin-bottom: 12px;
+    font-size: 1rem;
+    color: black;
+}
+
+    .result_item strong[inherit-scope] {
+        color: black;
+        font-weight: 700;
+    }
+
+.results_warning .result_item strong[inherit-scope] {
+    color: black;
+}
+
+.stakes_grid[inherit-scope] {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.stake_item[inherit-scope] {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background-color: #212121;
+    border-radius: 8px;
+}
+
+.outcome_label[inherit-scope] {
+    font-weight: 600;
+    color: white;
+}
+
+.stake_amount[inherit-scope] {
+    font-family: Consolas, monospace;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #e5e5e5;
+}
+
+.results_success h4[inherit-scope] {
+    color: black;
+    margin-top: 25px;
+    margin-bottom: 15px;
+    font-family: Consolas, monospace;
+    font-size: 1.1rem;
+}
+
+.results_warning p[inherit-scope] {
+    margin-top: 15px;
+    color: black;
+    font-style: italic;
+}
+
+.sticky_right[inherit-scope] {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+/* Title Styling - Clickable */
+h1[inherit-scope] {
+    text-align: center;
+    margin: 20px 0;
+}
+
+    h1[style*="cursor: pointer"][inherit-scope] {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        position: relative;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+        h1[style*="cursor: pointer"]:hover[inherit-scope] {
+            color: #A5C9FF;
+            background-color: rgba(165, 201, 255, 0.1);
+        }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .input_section[inherit-scope] {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .odds_wrapper[inherit-scope], .stake_wrapper[inherit-scope] {
+        min-width: unset;
+    }
+
+    .stake_item[inherit-scope] {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .stakes_grid[inherit-scope] {
+        gap: 15px;
+    }
+}
 /* /Pages/BackButton.razor.rz.scp.css */
 body[inherit-scope] {
     font-family: Arial, sans-serif;

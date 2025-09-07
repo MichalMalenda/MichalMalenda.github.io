@@ -137,7 +137,7 @@
       "url": "_framework\/icudt_no_CJK.dat"
     },
     {
-      "hash": "sha256-ty0FP6SReZ6NaohHLe1AmUERh7quRCcNRsKNzV73vao=",
+      "hash": "sha256-LgSoVHw1NZPHjzWZAv5oTXITxJ1T\/9eIK0CbqfxMq5A=",
       "url": "_framework\/blazor.boot.json"
     },
     {
@@ -149,7 +149,7 @@
       "url": "_framework\/Flurl.wasm"
     },
     {
-      "hash": "sha256-LeGLPzMB\/DMq0AL6GrSDz\/Mng6njImJZN13kMQooRG0=",
+      "hash": "sha256-uNytKN9ttgBfNpOalJ3l3D34S+A0IRjr9ShPS51FXvU=",
       "url": "_framework\/MichalMalenda.github.io.wasm"
     },
     {
@@ -157,7 +157,7 @@
       "url": "_framework\/Microsoft.AspNetCore.Components.Forms.wasm"
     },
     {
-      "hash": "sha256-GCTXUmykk6uRMvrxo0ezItDwzydZowN\/g0SJmbBWaF8=",
+      "hash": "sha256-L32QFlMkx3lTn8L\/PctPnEWNlSKNbY1OZeWVDPCbG9c=",
       "url": "_framework\/Microsoft.AspNetCore.Components.wasm"
     },
     {
@@ -425,7 +425,7 @@
       "url": "_framework\/System.Xml.Linq.wasm"
     },
     {
-      "hash": "sha256-Tu4B2RyCVu7Mris79WTiqaUaodUfq4RFuVFAYbwS1KE=",
+      "hash": "sha256-vLG5xjGx7d5i5B9Efg8elnw28NAK3i8p1rSi5UMuJd8=",
       "url": "MichalMalenda.github.io.styles.css"
     },
     {
@@ -481,5 +481,5 @@
       "url": "_content\/Syncfusion.Blazor.Spinner\/scripts\/spinner.min.js"
     }
   ],
-  "version": "Znh7VwB2"
+  "version": "FO2X7Aom"
 };
