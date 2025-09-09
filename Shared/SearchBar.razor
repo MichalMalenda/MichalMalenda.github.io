@@ -2,6 +2,7 @@
 @inject NavigationManager Navigation
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject IJSRuntime JS
 
 
 
@@ -28,7 +29,7 @@
 
     private List<TileData> tiles = new List<TileData>
     {
-        new TileData { Title = "2024-01-01", Content = "CV", Link="/about", Tag="CV,Michal Malenda,Michał Malenda,Malenda,Data Science,Experience,School,Education,Download"},
+        new TileData { Title = "2024-01-01", Content = "Curriculum Vitae", Link="/about", Tag="CV,Michal Malenda,Michał Malenda,Malenda,Data Science,Experience,School,Education,Download"},
         new TileData { Title = "2024-01-02", Content = "Calculator", Link="/calculator", Tag="Calculator" },
         new TileData { Title = "2024-01-03", Content = "TDEE Calculator", Link="/tdee", Tag="Calculator,Weight Loss,Activity,Total Daily Energy Expenditure,Basal Metabolic Rate,BMR,Harris-Benedict,TDEE"},
         new TileData { Title = "2024-01-04", Content = "Minutes Maker", Link="/minutes-maker", Tag="Meeting,Minutes Maker,Download" },
@@ -38,10 +39,10 @@
         new TileData { Title = "2025-08-28", Content = "Pomodoro Timer", Link="/pomodoro-timer", Tag="pomodoro, timer, clock, alarm, learning"},
         new TileData { Title = "2025-09-01", Content = "Tic Tac Toe", Link="/tictactoe", Tag="game, tic, tac, toe, tic tac toe, fun"},
         new TileData { Title = "2025-09-05", Content = "Speed Test", Link="/speedtest", Tag="speed, speedtest, test, speed test, ping, internet"},
-        new TileData { Title = "2027-01-21", Content = "Arbitrage Calculator", Link="/arbitrage-calculator", Tag="calculator, arbitrage, betting, bet, odds, profit"},
+        new TileData { Title = "2025-09-07", Content = "Arbitrage Calculator", Link="/arbitrage", Tag="calculator, arbitrage, betting, bet, odds, profit"},
         new TileData { Title = "2027-01-21", Content = "WIP", Link="/", Tag="dev"},
         new TileData { Title = "2027-01-21", Content = "WIP", Link="/", Tag="dev"},
-        new TileData { Title = "2027-01-21", Content = "WIP", Link="/mtg", Tag="mtg"}
+        new TileData { Title = "2027-01-21", Content = "WIP", Link="/", Tag="dev"}
     };
 
     private IEnumerable<TileData> filteredTiles => tiles.Where(tile =>
@@ -60,8 +61,7 @@
 
     private async Task ClearCookiesAndRefresh()
     {
-        var uri = NavigationManager.Uri + "?nocache=" + Guid.NewGuid();
-        NavigationManager.NavigateTo(uri, forceLoad: true);
+        await JS.InvokeVoidAsync("forceReload");
     }
 
     private class TileData

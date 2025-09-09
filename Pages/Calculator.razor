@@ -1,145 +1,374 @@
 ﻿@page "/calculator"
+@inject IJSRuntime JS
+<BackButton />
 
 <title>Calculator</title>
-<h1>Calculator</h1>
-<div class="display">
-    <div class="result">
-        <p id="result">@result</p>
+<h1 @onclick="ShowDescription" style="cursor: pointer; font-family: Consolas;">
+    Calculator
+</h1>
+
+@if (!showDescription)
+{
+    <div class="calculator-container">
+        <div class="display-wrapper">
+            <div class="display">
+                <div class="result">
+                    <p id="result">@result</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="buttons-wrapper">
+            <div class="button-grid">
+                <!-- First Row -->
+                <button @onclick="() => Mod()" class="btn-operation">%</button>
+                <button @onclick="() => ClearEntry()" class="btn-clear">CE</button>
+                <button @onclick="() => Clear()" class="btn-clear">C</button>
+                <button @onclick="() => Back()" class="btn-operation">
+                    <span class="backspace-icon">⌫</span>
+                </button>
+
+                <!-- Second Row -->
+                <button @onclick="() => Under()" class="btn-function">1/x</button>
+                <button @onclick="() => Sup()" class="btn-function">x²</button>
+                <button @onclick="() => Root()" class="btn-function">√x</button>
+                <button @onclick="() => Divide()" class="btn-operation">÷</button>
+
+                <!-- Third Row -->
+                <button @onclick="() => Set(7)" class="btn-number">7</button>
+                <button @onclick="() => Set(8)" class="btn-number">8</button>
+                <button @onclick="() => Set(9)" class="btn-number">9</button>
+                <button @onclick="() => Multiply()" class="btn-operation">×</button>
+
+                <!-- Fourth Row -->
+                <button @onclick="() => Set(4)" class="btn-number">4</button>
+                <button @onclick="() => Set(5)" class="btn-number">5</button>
+                <button @onclick="() => Set(6)" class="btn-number">6</button>
+                <button @onclick="() => Subtract()" class="btn-operation">-</button>
+
+                <!-- Fifth Row -->
+                <button @onclick="() => Set(1)" class="btn-number">1</button>
+                <button @onclick="() => Set(2)" class="btn-number">2</button>
+                <button @onclick="() => Set(3)" class="btn-number">3</button>
+                <button @onclick="() => Add()" class="btn-operation">+</button>
+
+                <!-- Sixth Row -->
+                <button @onclick="() => Swap()" class="btn-function">+/-</button>
+                <button @onclick="() => Set(0)" class="btn-number btn-zero">0</button>
+                <button @onclick="() => Dot()" class="btn-number">.</button>
+                <button @onclick="() => Equal()" class="btn-equals">=</button>
+            </div>
+        </div>
     </div>
-    <div class="zero-row">
-        <button @onclick="() => Mod()" id="r1-3">%</button>
-        <button @onclick="() => Clear()" id="r1-1">CE</button>
-        <button @onclick="() => Clear()" id="r1-1">C</button>
-        <button @onclick="() => Back()" id="r1-4 "><span class="bi bi-backspace" aria-hidden="true"></span></button>
+}
+
+@if (showDescription)
+{
+    <div class="sticky_right">
+        <h3>Calculator Features</h3>
+        <p>
+            This calculator provides standard arithmetic operations along with advanced functions:
+        </p>
+        <ul>
+            <li><strong>Basic Operations:</strong> Addition (+), Subtraction (-), Multiplication (×), Division (÷)</li>
+            <li><strong>Advanced Functions:</strong> Square (x²), Square Root (√x), Reciprocal (1/x), Modulo (%)</li>
+            <li><strong>Utility Functions:</strong> Clear (C), Clear Entry (CE), Backspace (⌫), Sign Toggle (+/-)</li>
+        </ul>
+        <p>
+            The calculator handles decimal numbers and provides immediate visual feedback.
+            All calculations are performed in real-time with proper error handling for edge cases
+            like division by zero.
+        </p>
+        <p>
+            <strong>Keyboard Support:</strong> You can use your keyboard for input - numbers, operators,
+            Enter for equals, Escape for clear, and Backspace for delete.
+        </p>
     </div>
-    <div class="first-row">
-        <button @onclick="() => Under()" id="r1-1">1/x</button>
-        <button @onclick="() => Sup()" id="r1-3">x<sup>2</sup></button>
-        <button @onclick="() => Root()" id="r1-4">√x</button>
-        <button @onclick="() => Divide()" id="r1-4">/</button>
-    </div>
-    <div class="second-row">
-        <button @onclick="() => Set(7)" id="r2-1">7</button>
-        <button @onclick="() => Set(8)" id="r2-2">8</button>
-        <button @onclick="() => Set(9)" id="r2-3">9</button>
-        <button @onclick="() => Multiply()" id="r2-4">x</button>
-    </div>
-    <div class="third-row">
-        <button @onclick="() => Set(4)" id="r3-1">4</button>
-        <button @onclick="() => Set(5)" id="r3-2">5</button>
-        <button @onclick="() => Set(6)" id="r3-3">6</button>
-        <button @onclick="() => Subtract()" id="r3-4">-</button>
-    </div>
-    <div class="fourth-row">
-        <button @onclick="() => Set(1)" id="r4-1">1</button>
-        <button @onclick="() => Set(2)" id="r4-2">2</button>
-        <button @onclick="() => Set(3)" id="r4-3">3</button>
-        <button @onclick="() => Add()" id="r4-4">+</button>
-    </div>
-    <div class="fifth-row">
-        <button @onclick="() => Swap()" id="r5-1">+/-</button>
-        <button @onclick="() => Set(0)" id="r5-2">0</button>
-        <button @onclick="() => Dot()" id="r5-3">.</button>
-        <button @onclick="() => Equal()" id="r5-4">=</button>
-    </div>
-</div>
+}
 
 @code {
+    private bool showDescription = false;
     private string result = "0";
-    private string action;
-    private double a, b = 0;
-    private void Clear(){
-        result = "0";
-        a = 0;
-        b = 0;
+    private string operation = "";
+    private double firstOperand = 0;
+    private double secondOperand = 0;
+    private bool waitingForOperand = false;
+    private bool hasDecimal = false;
+    private string lastOperation = "";
+
+    private void ShowDescription() => showDescription = !showDescription;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("addCalculatorKeyboardSupport", DotNetObjectReference.Create(this));
+        }
     }
 
-    private void Set(double number){
-        if (result == "0"){
+    [JSInvokable]
+    public async Task HandleKeyPress(string key)
+    {
+        switch (key)
+        {
+            case "0":
+            case "1":
+            case "2":
+            case "3":
+            case "4":
+            case "5":
+            case "6":
+            case "7":
+            case "8":
+            case "9":
+                Set(double.Parse(key));
+                break;
+            case ".":
+                Dot();
+                break;
+            case "+":
+                Add();
+                break;
+            case "-":
+                Subtract();
+                break;
+            case "*":
+                Multiply();
+                break;
+            case "/":
+                Divide();
+                break;
+            case "%":
+                Mod();
+                break;
+            case "Enter":
+            case "=":
+                Equal();
+                break;
+            case "Escape":
+                Clear();
+                break;
+            case "Backspace":
+                Back();
+                break;
+        }
+        StateHasChanged();
+    }
+
+    private void Clear()
+    {
+        result = "0";
+        firstOperand = 0;
+        secondOperand = 0;
+        operation = "";
+        waitingForOperand = false;
+        hasDecimal = false;
+        lastOperation = "";
+    }
+
+    private void ClearEntry()
+    {
+        result = "0";
+        hasDecimal = false;
+    }
+
+    private void Set(double number)
+    {
+        if (waitingForOperand)
+        {
             result = number.ToString();
-        }else{
-            result = result+number.ToString();
+            waitingForOperand = false;
+            hasDecimal = false;
+        }
+        else
+        {
+            result = result == "0" ? number.ToString() : result + number.ToString();
         }
     }
 
-    private void Dot(){
-        result = result + ".";
+    private void Dot()
+    {
+        if (waitingForOperand)
+        {
+            result = "0.";
+            waitingForOperand = false;
+            hasDecimal = true;
+        }
+        else if (!hasDecimal)
+        {
+            result += ".";
+            hasDecimal = true;
+        }
     }
 
-    private void Add(){
-        a = double.Parse(result);
-        action = "add";
-        result = "0";
+    private void Add()
+    {
+        PerformCalculation();
+        operation = "add";
+        waitingForOperand = true;
     }
-    private void Subtract(){
-        a = double.Parse(result);
-        action = "subtract";
-        result = "0";
+
+    private void Subtract()
+    {
+        PerformCalculation();
+        operation = "subtract";
+        waitingForOperand = true;
     }
-    private void Multiply(){
-        a = double.Parse(result);
-        action = "multiply";
-        result = "0";
+
+    private void Multiply()
+    {
+        PerformCalculation();
+        operation = "multiply";
+        waitingForOperand = true;
     }
-    private void Divide(){
-        a = double.Parse(result);
-        action = "divide";
-        result = "0";
+
+    private void Divide()
+    {
+        PerformCalculation();
+        operation = "divide";
+        waitingForOperand = true;
     }
-    private void Mod(){
-        a = double.Parse(result);
-        action = "mod";
-        result = "0";
+
+    private void Mod()
+    {
+        PerformCalculation();
+        operation = "mod";
+        waitingForOperand = true;
     }
-    private void Root(){
-        result = (Math.Sqrt(double.Parse(result))).ToString();
-    }
-    private void Sup(){
-        result = (Math.Pow(double.Parse(result),2)).ToString();
-    }
-    private void Under(){
-        if (result == "0"){
-            result = "0";
-        }else{
-            result = (1 / double.Parse(result)).ToString();
-        }
-    }
-    private void Swap(){
-        if (double.Parse(result) > 0){
-            result = "-"+result;
-        }else{
-            result = result.Replace("-","");
-        }
-    }
-    private void Back(){
-        if (result == "0"){
-            result = "0";
-        }else{
-            result = result.Remove(result.Length - 1, 1);
-        }
-    }
-    private void Equal(){
-        if (action == string.Empty) {
-        }else{
-            b = double.Parse(result);
-            switch (action)
+
+    private void Root()
+    {
+        try
+        {
+            double value = double.Parse(result);
+            if (value < 0)
             {
-                case "add":
-                    result = (a + b).ToString();
-                    break;
-                case "subtract":
-                    result = (a - b).ToString();
-                    break;
-                case "multiply":
-                    result = (a * b).ToString();
-                    break;
-                case "divide":
-                    result = (a / b).ToString();
-                    break;
-                case "mod":
-                    result = (a % b).ToString();
-                    break;
+                result = "Error";
+                return;
+            }
+            result = Math.Sqrt(value).ToString();
+            hasDecimal = result.Contains(".");
+        }
+        catch
+        {
+            result = "Error";
+        }
+    }
+
+    private void Sup()
+    {
+        try
+        {
+            double value = double.Parse(result);
+            result = Math.Pow(value, 2).ToString();
+            hasDecimal = result.Contains(".");
+        }
+        catch
+        {
+            result = "Error";
+        }
+    }
+
+    private void Under()
+    {
+        try
+        {
+            double value = double.Parse(result);
+            if (value == 0)
+            {
+                result = "Cannot divide by zero";
+                return;
+            }
+            result = (1.0 / value).ToString();
+            hasDecimal = result.Contains(".");
+        }
+        catch
+        {
+            result = "Error";
+        }
+    }
+
+    private void Swap()
+    {
+        if (result != "0" && !result.Contains("Error"))
+        {
+            if (result.StartsWith("-"))
+            {
+                result = result.Substring(1);
+            }
+            else
+            {
+                result = "-" + result;
             }
         }
     }
+
+    private void Back()
+    {
+        if (result.Length > 1 && !result.Contains("Error"))
+        {
+            if (result.EndsWith("."))
+            {
+                hasDecimal = false;
+            }
+            result = result.Substring(0, result.Length - 1);
+        }
+        else
+        {
+            result = "0";
+            hasDecimal = false;
+        }
+    }
+
+    private void Equal()
+    {
+        PerformCalculation();
+        operation = "";
+        waitingForOperand = true;
+    }
+
+    private void PerformCalculation()
+    {
+        if (string.IsNullOrEmpty(operation))
+        {
+            firstOperand = double.Parse(result);
+            return;
+        }
+
+        try
+        {
+            secondOperand = double.Parse(result);
+
+            double calculationResult = operation switch
+            {
+                "add" => firstOperand + secondOperand,
+                "subtract" => firstOperand - secondOperand,
+                "multiply" => firstOperand * secondOperand,
+                "divide" => secondOperand != 0 ? firstOperand / secondOperand : throw new DivideByZeroException(),
+                "mod" => secondOperand != 0 ? firstOperand % secondOperand : throw new DivideByZeroException(),
+                _ => double.Parse(result)
+            };
+
+            result = calculationResult.ToString();
+            firstOperand = calculationResult;
+            hasDecimal = result.Contains(".");
+        }
+        catch (DivideByZeroException)
+        {
+            result = "Cannot divide by zero";
+        }
+        catch
+        {
+            result = "Error";
+        }
+    }
 }
+
+<script>
+    window.addCalculatorKeyboardSupport = (dotNetObjectReference) => {
+        document.addEventListener('keydown', function(event) {
+            event.preventDefault();
+            dotNetObjectReference.invokeMethodAsync('HandleKeyPress', event.key);
+        });
+    };
+</script>

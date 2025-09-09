@@ -41,12 +41,6 @@
     font-family: Consolas;
 }
 
-
-
-
-
-
-
 .left_display {
     width: 100%;
     margin: 0 auto;
@@ -56,29 +50,6 @@
     box-sizing: border-box;
     padding: 0 20px;
 }
-
-/*.main_content {
-    display: flex;
-    width: 100%;
-    max-width: 1200px;
-    gap: 20px;
-    justify-content: flex-start;
-}
-    .radio_sidebar {
-    min-width: 150px;
-    max-width: 200px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    flex-shrink: 0;
-}
-    .input_output_area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    max-width: 800px;
-}
-*/
 
 .radio_option {
     margin-bottom: 8px;
