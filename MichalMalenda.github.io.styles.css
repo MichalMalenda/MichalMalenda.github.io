@@ -258,6 +258,239 @@ h1[inherit-scope] {
     .back-button:hover[inherit-scope] {
         background-color: #212121;
     }
+/* /Pages/Calculator.razor.rz.scp.css */
+/* Main Container */
+.calculator-container[inherit-scope] {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 20px;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* Display Wrapper */
+.display-wrapper[inherit-scope] {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.display[inherit-scope] {
+    width: 100%;
+    min-height: 80px;
+    background-color: black;
+    color: #e5e5e5;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 20px;
+    box-sizing: border-box;
+    border: 2px solid rgba(165, 201, 255, 0.2);
+    transition: border-color 0.3s ease;
+}
+
+    .display:hover[inherit-scope] {
+        border-color: rgba(165, 201, 255, 0.4);
+    }
+
+/* Buttons Wrapper */
+.buttons-wrapper[inherit-scope] {
+    width: 100%;
+}
+
+.button-grid[inherit-scope] {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    width: 100%;
+}
+
+    /* Base Button Styles */
+    .button-grid button[inherit-scope] {
+        height: 60px;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.2rem;
+        font-family: 'Consolas', 'Courier New', monospace;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+        .button-grid button:active[inherit-scope] {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .button-grid button[inherit-scope]::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s ease, height 0.3s ease;
+        }
+
+        .button-grid button:hover[inherit-scope]::before {
+            width: 100px;
+            height: 100px;
+        }
+
+/* Number Buttons */
+.btn-number[inherit-scope] {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    color: #ecf0f1;
+    font-weight: 500;
+}
+
+    .btn-number:hover[inherit-scope] {
+        background: linear-gradient(135deg, #34495e 0%, #3d566e 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    }
+
+/* Operation Buttons */
+.btn-operation[inherit-scope] {
+    background: linear-gradient(135deg, #A5C9FF 0%, #7fb3d3 100%);
+    color: #2c3e50;
+    font-weight: 600;
+    font-size: 1.4rem;
+}
+
+    .btn-operation:hover[inherit-scope] {
+        background: linear-gradient(135deg, #7fb3d3 0%, #5dade2 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(165, 201, 255, 0.3);
+    }
+
+/* Function Buttons */
+.btn-function[inherit-scope] {
+    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+    color: #2c3e50;
+    font-weight: 500;
+    font-size: 1rem;
+}
+
+    .btn-function:hover[inherit-scope] {
+        background: linear-gradient(135deg, #7f8c8d 0%, #6c7b7d 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(149, 165, 166, 0.3);
+    }
+
+/* Clear Buttons */
+.btn-clear[inherit-scope] {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+    font-weight: 600;
+}
+
+    .btn-clear:hover[inherit-scope] {
+        background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(231, 76, 60, 0.3);
+    }
+
+/* Equals Button */
+.btn-equals[inherit-scope] {
+    background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+    color: white;
+    font-weight: 700;
+    font-size: 1.6rem;
+}
+
+    .btn-equals:hover[inherit-scope] {
+        background: linear-gradient(135deg, #229954 0%, #1e8449 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(39, 174, 96, 0.3);
+    }
+
+/* Zero Button - Spans 2 columns */
+.btn-zero[inherit-scope] {
+    grid-column: span 1;
+}
+
+/* Special Icons */
+.backspace-icon[inherit-scope] {
+    font-size: 1.3rem;
+    display: inline-block;
+}
+
+/* Title Styling - Clickable */
+h1[inherit-scope] {
+    text-align: center;
+    margin: 20px 0;
+}
+
+    h1[style*="cursor: pointer"][inherit-scope] {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        position: relative;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+        h1[style*="cursor: pointer"]:hover[inherit-scope] {
+            color: #A5C9FF;
+            background-color: rgba(165, 201, 255, 0.1);
+        }
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .calculator-container[inherit-scope] {
+        max-width: 350px;
+        padding: 15px;
+    }
+
+    .button-grid[inherit-scope] {
+        gap: 8px;
+    }
+
+        .button-grid button[inherit-scope] {
+            height: 50px;
+            font-size: 1rem;
+        }
+
+    #result[inherit-scope] {
+        font-size: 2rem;
+    }
+
+    .description-panel[inherit-scope] {
+        padding: 20px;
+    }
+}
+
+/* Smooth animations for state changes */
+@keyframes pulse-inherit-scope {
+    0% {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    50% {
+        box-shadow: 0 6px 20px rgba(165, 201, 255, 0.3);
+    }
+
+    100% {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+}
+
+.display:focus-within[inherit-scope] {
+    animation: pulse-inherit-scope 2s infinite;
+}
 /* /Pages/Companion.razor.rz.scp.css */
 body[inherit-scope] {
     margin: 0;
@@ -423,12 +656,6 @@ body[inherit-scope] {
     font-family: Consolas;
 }
 
-
-
-
-
-
-
 .left_display[inherit-scope] {
     width: 100%;
     margin: 0 auto;
@@ -438,29 +665,6 @@ body[inherit-scope] {
     box-sizing: border-box;
     padding: 0 20px;
 }
-
-/*.main_content {
-    display: flex;
-    width: 100%;
-    max-width: 1200px;
-    gap: 20px;
-    justify-content: flex-start;
-}
-    .radio_sidebar {
-    min-width: 150px;
-    max-width: 200px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    flex-shrink: 0;
-}
-    .input_output_area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    max-width: 800px;
-}
-*/
 
 .radio_option[inherit-scope] {
     margin-bottom: 8px;
