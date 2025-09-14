@@ -97,7 +97,7 @@
                               placeholder="Copy/Paste text here."
                               @bind="InputValue"
                               @oninput="@(e => { InputValue = e.Value.ToString(); UpdateLabel(); })">
-                        </textarea>
+                            </textarea>
                 </div>
                 <div class="output_wrapper">
                     <textarea id="label_field_out" readonly>@LabelValue</textarea>
@@ -116,8 +116,32 @@
                             <label>From UNICODE</label>
                         </div>
                         <div class="radio_option">
+                            <InputRadio Value="3" />
+                            <label>From UTF-8</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="4" />
+                            <label>From UTF-16</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="5" />
+                            <label>From UTF-32</label>
+                        </div>
+                        <div class="radio_option">
                             <InputRadio Value="6" />
                             <label>From Base64</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="9" />
+                            <label>From Binary</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="10" />
+                            <label>From Decimal</label>
+                        </div>
+                        <div class="radio_option">
+                            <InputRadio Value="11" />
+                            <label>From Hexadecimal</label>
                         </div>
                         <div class="radio_option">
                             <InputRadio Value="12" />
@@ -132,26 +156,48 @@
 @if (showTextD)
 {
     <div class="sticky_right">
-        Converter is a tool to quickly convert text to different formats for development and debugging purposes.
+        Converter is a comprehensive text encoding and decoding tool for development, debugging, and text manipulation purposes.
         <br />
         <br />
-        Simply paste your text in the input area and select your desired output format:
-        <br />
-        • <strong>To ASCII</strong> - Converts each character to its ASCII decimal value
-        <br />
-        • <strong>To UNICODE</strong> - Converts each character to its Unicode escape sequence (\\u format)
-        <br />
-        • <strong>To UTF-8</strong> - Converts text to UTF-8 byte representation in hexadecimal
-        <br />
-        • <strong>To UTF-16</strong> - Converts text to UTF-16 byte representation in hexadecimal
-        <br />
-        • <strong>To UTF-32</strong> - Converts text to UTF-32 byte representation in hexadecimal
+        Simply paste your text in the input area and select your desired conversion format. The tool supports bidirectional conversion between multiple formats:
         <br />
         <br />
-        Perfect for developers who need to quickly check character codes, debug text encoding issues, or convert text for use in code.
+        <strong>Text Encoding Formats:</strong>
+        <br />
+        • <strong>ASCII/Decimal</strong> - Character decimal values (65 for 'A')
+        <br />
+        • <strong>Unicode</strong> - Unicode escape sequences (\\u0041 for 'A')
+        <br />
+        • <strong>UTF-8/16/32</strong> - Byte representations in hexadecimal
+        <br />
+        • <strong>Base64</strong> - Base64 encoded text
+        <br />
+        • <strong>Hexadecimal</strong> - Hex character codes (41 for 'A')
+        <br />
+        • <strong>Binary</strong> - Binary character codes (01000001 for 'A')
+        <br />
+        • <strong>URL Encoding</strong> - Percent-encoded for web use
+        <br />
+        • <strong>HTML Entities</strong> - HTML-safe character encoding
         <br />
         <br />
-        The conversion happens instantly as you type, with no data stored on any server.
+        <strong>Text Manipulation:</strong>
+        <br />
+        • <strong>Text Flipping</strong> - Upside-down text with special characters
+        <br />
+        • <strong>Text Mirroring</strong> - Reverse character order
+        <br />
+        • <strong>Leetspeak</strong> - Replace letters with numbers/symbols
+        <br />
+        • <strong>ROT13</strong> - Caesar cipher with 13-character shift
+        <br />
+        • <strong>Caesar Cipher</strong> - Customizable character shift (1-25)
+        <br />
+        <br />
+        Perfect for developers, cybersecurity professionals, and anyone needing quick text format conversions or transformations.
+        <br />
+        <br />
+        All conversions happen instantly in your browser with no data sent to servers.
         <br />
         <br />
     </div>
@@ -438,13 +484,6 @@
         }
     }
 
-
-
-
-
-
-
-
     private int fromSelectedValue = 0;
     private int fromCaesarShift = 3;
 
@@ -465,8 +504,26 @@
             case 2:
                 LabelValue = ConvertFromUnicode(InputValue);
                 break;
+            case 3:
+                LabelValue = ConvertFromUtf8(InputValue);
+                break;
+            case 4:
+                LabelValue = ConvertFromUtf16(InputValue);
+                break;
+            case 5:
+                LabelValue = ConvertFromUtf32(InputValue);
+                break;
             case 6:
                 LabelValue = ConvertFromBase64(InputValue);
+                break;
+            case 9:
+                LabelValue = ConvertFromBinary(InputValue);
+                break;
+            case 10:
+                LabelValue = ConvertFromDecimal(InputValue);
+                break;
+            case 11:
+                LabelValue = ConvertFromHexadecimal(InputValue);
                 break;
             case 12:
                 LabelValue = ConvertFromUrlEncoding(InputValue);
@@ -500,6 +557,87 @@
         catch
         {
             return "Invalid Unicode format";
+        }
+    }
+
+    private string ConvertFromUtf8(string input)
+    {
+        try
+        {
+            var hexBytes = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            byte[] bytes = hexBytes.Select(hex => Convert.ToByte(hex, 16)).ToArray();
+            return Encoding.UTF8.GetString(bytes);
+        }
+        catch
+        {
+            return "Invalid UTF-8 format";
+        }
+    }
+
+    private string ConvertFromUtf16(string input)
+    {
+        try
+        {
+            var hexBytes = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            byte[] bytes = hexBytes.Select(hex => Convert.ToByte(hex, 16)).ToArray();
+            return Encoding.Unicode.GetString(bytes);
+        }
+        catch
+        {
+            return "Invalid UTF-16 format";
+        }
+    }
+
+    private string ConvertFromUtf32(string input)
+    {
+        try
+        {
+            var hexBytes = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            byte[] bytes = hexBytes.Select(hex => Convert.ToByte(hex, 16)).ToArray();
+            return Encoding.UTF32.GetString(bytes);
+        }
+        catch
+        {
+            return "Invalid UTF-32 format";
+        }
+    }
+
+    private string ConvertFromHexadecimal(string input)
+    {
+        try
+        {
+            var hexValues = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return new string(hexValues.Select(hex => (char)Convert.ToInt32(hex, 16)).ToArray());
+        }
+        catch
+        {
+            return "Invalid Hexadecimal format";
+        }
+    }
+
+    private string ConvertFromDecimal(string input)
+    {
+        try
+        {
+            var decimalValues = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return new string(decimalValues.Select(dec => (char)int.Parse(dec)).ToArray());
+        }
+        catch
+        {
+            return "Invalid Decimal format";
+        }
+    }
+
+    private string ConvertFromBinary(string input)
+    {
+        try
+        {
+            var binaryValues = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return new string(binaryValues.Select(bin => (char)Convert.ToInt32(bin, 2)).ToArray());
+        }
+        catch
+        {
+            return "Invalid Binary format";
         }
     }
 
