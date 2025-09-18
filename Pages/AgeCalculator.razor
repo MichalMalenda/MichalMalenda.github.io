@@ -1,0 +1,213 @@
+﻿@page "/age-calculator"
+@using System.Globalization
+@inject IJSRuntime JS
+<BackButton />
+
+<title>Age Calculator</title>
+<h1 @onclick="ShowDescription" style="cursor: pointer;font-family:Consolas;">
+    Age Calculator
+</h1>
+
+@if (!showTextD)
+{
+    <div class="left_display">
+        <div class="input_area_wrapper">
+            <div class="date_input_row">
+                <div class="date_input_group">
+                    <label for="date_from">Date From:</label>
+                    <input type="text"
+                           id="date_from"
+                           @bind="DateFromText"
+                           placeholder="e.g. 1990-05-15 or May 15, 1990"
+                           @onfocus="@(() => SetInputType("date_from", "date"))"
+                           @onblur="@(() => SetInputType("date_from", "text"))" />
+                </div>
+                <div class="date_input_group">
+                    <label for="date_to">Date To:</label>
+                    <input type="text"
+                           id="date_to"
+                           @bind="DateToText"
+                           placeholder="e.g. 2024-12-31 or Dec 31, 2024"
+                           @onfocus="@(() => SetInputType("date_to", "date"))"
+                           @onblur="@(() => SetInputType("date_to", "text"))" />
+                </div>
+            </div>
+            <div class="button_wrapper">
+                <button @onclick="CalculateAge">Calculate Age</button>
+            </div>
+        </div>
+
+        @if (showResults)
+        {
+            <div class="results_container">
+                <div class="stats-section">
+                    <div class="stat-item">
+                        <div class="stat-value">@ageResult.Years</div>
+                        <div class="stat-label">Years</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">@ageResult.Months</div>
+                        <div class="stat-label">Months</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">@ageResult.Days</div>
+                        <div class="stat-label">Days</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">@ageResult.Hours</div>
+                        <div class="stat-label">Hours</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">@ageResult.Minutes</div>
+                        <div class="stat-label">Minutes</div>
+                    </div>
+                </div>
+
+                <div class="stats-section">
+                    <div class="stat-item">
+                        <div class="stat-value">@totalResult.TotalDays.ToString("N0")</div>
+                        <div class="stat-label">Total Days</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">@totalResult.TotalHours.ToString("N0")</div>
+                        <div class="stat-label">Total Hours</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">@totalResult.TotalMinutes.ToString("N0")</div>
+                        <div class="stat-label">Total Minutes</div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@if (showTextD)
+{
+    <div class="sticky_right">
+        Age Calculator is a tool to calculate the time difference between any two dates and see the breakdown in different units.
+        <br />
+        <br />
+        Simply enter your "Date From" and "Date To", then click the Calculate Age button to see the time difference in years, months, days, hours, and minutes. You'll also see the total time in days, hours, and minutes.
+        <br />
+        <br />
+        This tool works for any date range - calculate your age, time since an event, or duration between any two dates. All calculations are done client-side in your browser - no data is sent to any server.
+        <br />
+        <br />
+    </div>
+}
+
+@code {
+    private bool showTextD = false;
+    private bool showResults = false;
+    private string DateFromText = "";
+    private string DateToText = DateTime.Today.ToString("dd-MM-yyyy");
+    private DateTime DateFrom;
+    private DateTime DateTo;
+
+    // Age breakdown
+    private (int Years, int Months, int Days, int Hours, int Minutes) ageResult;
+
+    // Total time lived
+    private (double TotalDays, double TotalHours, double TotalMinutes) totalResult;
+
+    private void ShowDescription() => showTextD = !showTextD;
+
+    private async Task SetInputType(string inputId, string inputType)
+    {
+        await JS.InvokeVoidAsync("setInputType", inputId, inputType);
+    }
+
+    protected override void OnInitialized()
+    {
+        // Don't auto-calculate on initialization
+    }
+
+    private void CalculateAge()
+    {
+        // Parse the text inputs to DateTime
+        if (!TryParseDate(DateFromText, out DateFrom))
+        {
+            showResults = false;
+            return;
+        }
+
+        if (!TryParseDate(DateToText, out DateTo))
+        {
+            showResults = false;
+            return;
+        }
+
+        if (DateFrom > DateTo)
+        {
+            showResults = false;
+            return;
+        }
+
+        DateTime startDate = DateFrom;
+        DateTime endDate = DateTo;
+
+        // Calculate age components
+        int years = endDate.Year - startDate.Year;
+        int months = endDate.Month - startDate.Month;
+        int days = endDate.Day - startDate.Day;
+        int hours = DateTime.Now.Hour;
+        int minutes = DateTime.Now.Minute;
+
+        if (days < 0)
+        {
+            months--;
+            days += DateTime.DaysInMonth(endDate.AddMonths(-1).Year, endDate.AddMonths(-1).Month);
+        }
+
+        if (months < 0)
+        {
+            years--;
+            months += 12;
+        }
+
+        TimeSpan totalTimeSpan = endDate - startDate;
+        ageResult = (years, months, days, hours, minutes);
+
+        // Calculate totals
+        totalResult = (
+            Math.Floor(totalTimeSpan.TotalDays),
+            Math.Floor(totalTimeSpan.TotalHours)+hours,
+            Math.Floor(totalTimeSpan.TotalMinutes)+minutes
+        );
+
+        showResults = true;
+        StateHasChanged();
+    }
+
+    private bool TryParseDate(string dateText, out DateTime date)
+    {
+        date = default;
+
+        if (string.IsNullOrWhiteSpace(dateText))
+            return false;
+
+        // Try multiple date formats
+        string[] formats = {
+            "dd-MM-yyyy"
+        };
+
+        foreach (string format in formats)
+        {
+            if (DateTime.TryParseExact(dateText, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
+                return true;
+        }
+
+        // Try general parsing as fallback
+        return DateTime.TryParse(dateText, out date);
+    }
+}
+
+<script>
+    window.setInputType = (inputId, inputType) => {
+        const input = document.getElementById(inputId);
+        if (input) {
+            input.type = inputType;
+        }
+    }
+</script>
