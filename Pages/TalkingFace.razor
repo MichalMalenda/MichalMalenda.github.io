@@ -1,0 +1,1162 @@
+﻿@page "/talking-face"
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+<BackButton />
+<title>Talking Face</title>
+
+<h1 @onclick="ToggleDescription" style="cursor: pointer;font-family:Consolas;">ASCII Talking Face</h1>
+
+@if (showDescription)
+{
+    <div class="sticky_left">
+        <p>Upload an audio clip and watch an ASCII face lip-sync to it in your browser, live, using the Web Audio API to read amplitude in real time.</p>
+        <p><strong>How to use:</strong></p>
+        <ul>
+            <li>Choose an audio file, then press "Play"</li>
+            <li>The mouth opens and closes with the volume of the clip</li>
+            <li>Switch "Emotion" to change eyes, brows, and mouth style</li>
+            <li>Adjust "Sensitivity" if the mouth barely moves or maxes out constantly</li>
+        </ul>
+        <p><strong>Note:</strong> this is amplitude-driven, not true viseme (phoneme) matching, so it's best as a quick preview. For frame-accurate lip sync to export into DaVinci Resolve/Fusion, run the clip through Rhubarb Lip Sync first and render frames from the resulting viseme timeline.</p>
+    </div>
+}
+
+<div class="face_container">
+    <div class="upload-section">
+        <input type="file" id="audio-file-input" accept="audio/*" class="file-input" onchange="handleAudioFile(event)" />
+        <audio id="face-audio" controls></audio>
+    </div>
+
+    <div class="face-display">
+        <pre id="ascii-face" class="ascii-face"></pre>
+    </div>
+
+    <div class="session-label" id="face-status">Idle — upload an audio clip to begin</div>
+
+    <div class="controls-section">
+        <div class="third-row">
+            <button class="timer-button" onclick="playFace()">Play</button>
+            <button class="timer-button" onclick="pauseFace()">Pause</button>
+            <button class="timer-button" onclick="stopFace()">Stop</button>
+        </div>
+
+        <div class="fourth-row">
+            <span class="radio-label">Emotion:</span>
+            <select id="emotion-select" onchange="setEmotion(this.value)">
+                <option value="neutral" selected>Neutral</option>
+                <option value="happy">Happy</option>
+                <option value="sad">Sad</option>
+                <option value="angry">Angry</option>
+                <option value="surprised">Surprised</option>
+            </select>
+        </div>
+
+        <div class="fifth-row">
+            <span class="color-text setting-label">Sensitivity:</span>
+            <input type="range" id="sensitivity-slider" min="1" max="10" value="5"
+                   class="tolerance-slider" oninput="setSensitivity(this.value)" />
+            <span class="color-text setting-value" id="sensitivity-value">5</span>
+        </div>
+
+        <div class="seventh-row">
+            <span class="radio-label">Spin:</span>
+            <input type="checkbox" id="spin-toggle" class="spin-checkbox" checked
+                   onchange="setSpinEnabled(this.checked)" />
+        </div>
+
+        <div class="sixth-row">
+            <button class="timer-button" id="download-gif-btn" onclick="downloadFaceVideo()">Download Video</button>
+        </div>
+        <div class="download-status" id="download-status"></div>
+    </div>
+</div>
+
+@code {
+    private bool showDescription = false;
+
+    private void ToggleDescription() => showDescription = !showDescription;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("initTalkingFace");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error initializing talking face: {ex.Message}");
+            }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("cleanupTalkingFace");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during cleanup: {ex.Message}");
+        }
+    }
+}
+
+<script>
+    window.faceState = {
+        audioCtx: null,
+        analyser: null,
+        source: null,
+        audioDest: null,
+        dataArray: null,
+        rafId: null,
+        emotion: 'neutral',
+        sensitivity: 5,
+        spinEnabled: true,
+        objectUrl: null,
+        smoothedLevel: 0,
+        startTime: null,
+        nextBlink: 2 + Math.random() * 3,
+        blinkStart: null,
+        nextTwitch: 2 + Math.random() * 3,
+        twitchStart: null,
+        twitchType: 0,
+        twitchSide: 1,
+        twitchDur: 0.4,
+        lastAsciiText: '',
+        turnAccum: 0,
+        lastFrameT: null,
+        lastOnsetTime: null,
+        onsetIntervals: [],
+        wasTalking: false
+    };
+
+    // Grid + canvas: cell aspect (4:6) approximates a monospace glyph's width:height
+    // so the sampled density map lines up with the rendered <pre> text.
+    const GRID_COLS = 52;
+    const GRID_ROWS = 58;
+    const CELL_W = 4;
+    const CELL_H = 6;
+    const CANVAS_W = GRID_COLS * CELL_W;
+    const CANVAS_H = GRID_ROWS * CELL_H;
+    const FACE_COLOR = '0,255,102';
+
+    // Full pseudo-3D turn: the whole face slowly spins on its vertical axis
+    // like a coin, via a horizontal squash (cos of the turn angle) rather
+    // than true depth — same trick a sprite uses to fake a Y-axis rotation.
+    const TURN_PERIOD = 17; // seconds for one full 360° turn, used only when idle (no speech rhythm yet)
+
+    // Rhythm-locked turn tuning: once speech bursts start, the turn period
+    // is replaced by the measured gap between bursts instead of TURN_PERIOD.
+    const MIN_TURN_PERIOD = 0.35; // fastest allowed spin, guards against noise-triggered near-zero gaps
+    const MAX_TURN_PERIOD = 6;    // slowest allowed spin, guards against a long pause reading as "rhythm"
+    const ONSET_HISTORY = 4;      // number of recent gaps averaged together, smooths out one-off timing jitter
+
+    // Density buckets, darkest/most-ink first. Several visually-similar-weight
+    // characters per bucket so the fill reads as varied "code texture"
+    // like a real image-to-ASCII conversion rather than a smooth ramp.
+    const DENSITY_BUCKETS = [
+        { min: 0.85, chars: ['@@', '#', '%', '8', 'B', '&'] },
+        { min: 0.65, chars: ['0', 'O', 'Q', 'M', 'W', 'U'] },
+        { min: 0.45, chars: ['x', 'X', 'k', 'K', 'H', 'N'] },
+        { min: 0.28, chars: ['n', 'u', 'v', 'c', 'o', 'z', '?'] },
+        { min: 0.14, chars: ['1', 'i', 'l', 'j', 't', 'f', ';'] },
+        { min: 0.05, chars: [':', '-', '+', '~', '^', '.', "'"] }
+    ];
+
+    const EMOTION_PARAMS = {
+        neutral:   { browAngle: 0.00,  browY: 0,  eyeRy: 0.90, mouthCurve: 0.35, restOpen: 0.06 },
+        happy:     { browAngle: -0.18, browY: -2, eyeRy: 0.80, mouthCurve: 1.0,  restOpen: 0.05 },
+        sad:       { browAngle: 0.30,  browY: 2,  eyeRy: 1.00, mouthCurve: -1.0, restOpen: 0.00 },
+        angry:     { browAngle: 0.45,  browY: 4,  eyeRy: 0.65, mouthCurve: -0.5, restOpen: 0.05 },
+        surprised: { browAngle: -0.35, browY: -6, eyeRy: 1.45, mouthCurve: 0.0,  restOpen: 0.25 }
+    };
+
+    let offCtx = null;
+    function getCanvasCtx() {
+        if (!offCtx) {
+            const c = document.createElement('canvas');
+            c.width = CANVAS_W;
+            c.height = CANVAS_H;
+            offCtx = c.getContext('2d', { willReadFrequently: true });
+        }
+        return offCtx;
+    }
+
+    function hash(a, b, seed) {
+        let h = (a * 374761393 + b * 668265263 + seed * 2654435761) >>> 0;
+        h = (h ^ (h >>> 13)) >>> 0;
+        h = (h * 1274126177) >>> 0;
+        return (h ^ (h >>> 16)) >>> 0;
+    }
+
+    function charForAlpha(alpha, col, row, seed) {
+        if (alpha < 0.04) return ' ';
+        for (const bucket of DENSITY_BUCKETS) {
+            if (alpha >= bucket.min) {
+                return bucket.chars[hash(col, row, seed) % bucket.chars.length];
+            }
+        }
+        return ' ';
+    }
+
+    // Soft rounded dome/beanie base that sits on the crown of the head —
+    // this is what reads as "hat", so the points below look like they
+    // droop off a cap rather than sprout straight out of the skull.
+    function drawCapDome(ctx, cx, headTop) {
+        ctx.beginPath();
+        ctx.moveTo(cx - 48, headTop + 16);
+        ctx.quadraticCurveTo(cx - 54, headTop - 26, cx - 16, headTop - 36);
+        ctx.quadraticCurveTo(cx, headTop - 40, cx + 16, headTop - 36);
+        ctx.quadraticCurveTo(cx + 54, headTop - 26, cx + 48, headTop + 16);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // highlight along the crown for a bit of roundness
+        ctx.save();
+        const hl = ctx.createRadialGradient(cx - 14, headTop - 22, 2, cx - 14, headTop - 22, 40);
+        hl.addColorStop(0, `rgba(${FACE_COLOR},0.28)`);
+        hl.addColorStop(1, `rgba(${FACE_COLOR},0)`);
+        ctx.fillStyle = hl;
+        ctx.beginPath();
+        ctx.ellipse(cx, headTop - 12, 50, 30, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    // One floppy point of the jester cap: springs from the side of the
+    // dome, arcs outward and briefly up, then droops down alongside the
+    // head like real cloth under its own weight, ending in a pom-pom.
+    function drawCapPoint(ctx, cx, headTop, side, t) {
+        const sway = Math.sin(t * 1.4 + side) * 4;
+        const baseX = cx + side * 30, baseY = headTop - 10;
+        const outBaseX = cx + side * 46, outBaseY = headTop + 10;
+
+        const c1x = cx + side * 82, c1y = headTop - 34;
+        const c2x = cx + side * 96, c2y = headTop + 20;
+        const tipX = cx + side * 68 + sway, tipY = headTop + 108;
+
+        const ic1x = cx + side * 92, ic1y = headTop + 66;
+        const ic2x = cx + side * 62, ic2y = headTop + 30;
+
+        ctx.beginPath();
+        ctx.moveTo(baseX, baseY);
+        ctx.bezierCurveTo(c1x, c1y, c2x, c2y, tipX, tipY);
+        ctx.bezierCurveTo(ic1x, ic1y, ic2x, ic2y, outBaseX, outBaseY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // a soft crease shadow near the base, where drooping cloth folds
+        ctx.save();
+        const fold = ctx.createLinearGradient(baseX, baseY, tipX, tipY);
+        fold.addColorStop(0, 'rgba(0,0,0,0.20)');
+        fold.addColorStop(0.35, 'rgba(0,0,0,0)');
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = fold;
+        ctx.beginPath();
+        ctx.moveTo(baseX, baseY);
+        ctx.bezierCurveTo(c1x, c1y, c2x, c2y, tipX, tipY);
+        ctx.bezierCurveTo(ic1x, ic1y, ic2x, ic2y, outBaseX, outBaseY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // pom-pom bell at the drooping tip, with a tiny shadow under it
+        ctx.beginPath();
+        ctx.ellipse(tipX, tipY + 3, 8, 6, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(tipX, tipY, 8, 8, 0, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${FACE_COLOR},0.42)`;
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    // Zigzag/scalloped brim where the cap meets the forehead
+    function drawHatBrim(ctx, cx, headTop) {
+        const bumps = 7;
+        const totalWidth = 132;
+        const startX = cx - totalWidth / 2;
+        const bumpW = totalWidth / bumps;
+        ctx.beginPath();
+        ctx.moveTo(startX, headTop + 14);
+        for (let i = 0; i < bumps; i++) {
+            const x0 = startX + i * bumpW;
+            const xm = x0 + bumpW / 2;
+            const x1 = x0 + bumpW;
+            const dip = (i % 2 === 0) ? 14 : 3;
+            ctx.quadraticCurveTo(xm, headTop + dip, x1, headTop + 14);
+        }
+        ctx.lineTo(startX + totalWidth, headTop + 26);
+        ctx.lineTo(startX, headTop + 26);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    // A rounded dome cap, two points that droop down alongside the head
+    // to pom-poms (not horns curling upward), a scalloped brim, and small
+    // diamond accents — reads unmistakably as a floppy jester cap.
+    function drawJesterHat(ctx, cx, headTop, t) {
+        ctx.fillStyle = `rgba(${FACE_COLOR},0.42)`;
+        ctx.strokeStyle = `rgba(${FACE_COLOR},0.8)`;
+        ctx.lineWidth = 1.5;
+
+        // points drawn first so the dome's base overlaps and hides their
+        // attachment seams, then the brim caps the whole thing off cleanly
+        drawCapPoint(ctx, cx, headTop, -1, t);
+        drawCapPoint(ctx, cx, headTop, 1, t);
+        drawCapDome(ctx, cx, headTop);
+        drawHatBrim(ctx, cx, headTop);
+
+        [-1, 1].forEach(side => {
+            const dx = cx + side * 40, dy = headTop + 19;
+            ctx.beginPath();
+            ctx.moveTo(dx, dy - 6);
+            ctx.lineTo(dx + 5, dy);
+            ctx.lineTo(dx, dy + 6);
+            ctx.lineTo(dx - 5, dy);
+            ctx.closePath();
+            ctx.stroke();
+        });
+    }
+
+    // Triangular/diamond jester face silhouette: narrower under the hat,
+    // flares to its widest at the cheekbones, then tapers sharply down to
+    // a pointed chin — used for the fill, the highlight clip, and the
+    // shading passes so every layer shares the exact same outline.
+    function pathHeadShape(ctx, cx, cy) {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 78);
+        ctx.quadraticCurveTo(cx + 58, cy - 62, cx + 74, cy - 14);
+        ctx.quadraticCurveTo(cx + 68, cy + 28, cx + 32, cy + 62);
+        ctx.quadraticCurveTo(cx + 12, cy + 80, cx, cy + 96);
+        ctx.quadraticCurveTo(cx - 12, cy + 80, cx - 32, cy + 62);
+        ctx.quadraticCurveTo(cx - 68, cy + 28, cx - 74, cy - 14);
+        ctx.quadraticCurveTo(cx - 58, cy - 62, cx, cy - 78);
+        ctx.closePath();
+    }
+
+    // Non-round eye outline: an ellipse perturbed by a sine wobble so the
+    // edge reads as jagged/uneven rather than a clean oval. `spikes` sets
+    // how many lobes go around, `amt` how pronounced they are.
+    function pathCrazyEye(ctx, ex, ey, rx, ry, rot, spikes, amt) {
+        const N = 28;
+        ctx.beginPath();
+        for (let i = 0; i <= N; i++) {
+            const a = (i / N) * Math.PI * 2;
+            const wob = 1 + amt * Math.sin(a * spikes + rot * 3);
+            const lx = Math.cos(a) * rx * wob;
+            const ly = Math.sin(a) * ry * wob;
+            const x = ex + lx * Math.cos(rot) - ly * Math.sin(rot);
+            const y = ey + lx * Math.sin(rot) + ly * Math.cos(rot);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+    }
+
+    // Draws a pupil mark inside an already-cut eye socket: an X on one
+    // side, a plain dot on the other, so the two eyes read as mismatched.
+    function drawPupil(ctx, ex, ey, ry, shape) {
+        if (ry < 2.8) return; // eye too closed (blinking/winking) to show a pupil
+        const scale = Math.min(1, ry / 10);
+        const r = 6.5 * scale;
+        ctx.strokeStyle = `rgba(${FACE_COLOR},1)`;
+        ctx.fillStyle = `rgba(${FACE_COLOR},1)`;
+        if (shape === 'x') {
+            ctx.lineWidth = 3 * scale;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(ex - r, ey - r);
+            ctx.lineTo(ex + r, ey + r);
+            ctx.moveTo(ex - r, ey + r);
+            ctx.lineTo(ex + r, ey - r);
+            ctx.stroke();
+        } else {
+            // hollow ring, like a bold letter "O", not a filled dot
+            ctx.lineWidth = 3 * scale;
+            ctx.beginPath();
+            ctx.ellipse(ex, ey, r, r, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+
+    // Draws the face procedurally each frame: idle head bob/sway/breathing,
+    // blinking eyes, a subtly flaring nose, and a mouth whose resting shape
+    // comes from the emotion and whose opening comes from audio level.
+    function drawFace(ctx, p, opts) {
+        const W = CANVAS_W, H = CANVAS_H;
+        const clear = !opts || opts.clear !== false;
+        if (clear) ctx.clearRect(0, 0, W, H);
+        ctx.save();
+
+        const cx = W / 2, cy = H / 2 + 22;
+        const t = p.t;
+        const bobY = Math.sin(t * 0.9) * 3 + Math.sin(t * 0.37) * 1.2 * p.energy;
+        const sway = Math.sin(t * 0.5) * 2;
+        const rot = Math.sin(t * 0.33) * 0.03;
+        const breathe = 1 + Math.sin(t * 0.8) * 0.012;
+
+        // Slow full-360 turn, layered on top of the idle bob/sway/breathe.
+        // A pure cos() would flatten to an invisible zero-width line at the
+        // 90°/270° profile points, so the magnitude is floored to a thin
+        // sliver instead — reads as a brief edge-on silhouette, not a gap.
+        const turnAngle = ((p.turnT !== undefined ? p.turnT : t) / TURN_PERIOD) * Math.PI * 2;
+        let turnScaleX = Math.cos(turnAngle);
+        const minTurnMag = 0.06;
+        if (Math.abs(turnScaleX) < minTurnMag) {
+            turnScaleX = minTurnMag * (turnScaleX < 0 ? -1 : 1);
+        }
+
+        ctx.translate(cx + sway, cy + bobY);
+        ctx.rotate(rot);
+        ctx.scale(breathe, breathe);
+        ctx.scale(turnScaleX, 1);
+        ctx.translate(-cx, -cy);
+
+        const e = EMOTION_PARAMS[p.emotion] || EMOTION_PARAMS.neutral;
+        const tw = p.twitch || { type: -1, side: 1, amount: 0 };
+
+        // Jester hat, drawn first so the head silhouette overlaps its base
+        drawJesterHat(ctx, cx, cy - 80, t);
+
+        // Head: triangular/diamond jester silhouette (wide cheekbones,
+        // pointed chin) rather than a round egg shape.
+        const grad = ctx.createRadialGradient(cx, cy - 10, 8, cx, cy, 96);
+        grad.addColorStop(0, `rgba(${FACE_COLOR},0.55)`);
+        grad.addColorStop(0.7, `rgba(${FACE_COLOR},0.40)`);
+        grad.addColorStop(1, `rgba(${FACE_COLOR},0.15)`);
+        ctx.fillStyle = grad;
+        pathHeadShape(ctx, cx, cy);
+        ctx.fill();
+
+        // Directional shading for depth: soft highlight upper-left, soft
+        // shadow lower-right, both clipped to the head silhouette.
+        ctx.save();
+        const hl = ctx.createRadialGradient(cx - 32, cy - 42, 5, cx - 32, cy - 42, 74);
+        hl.addColorStop(0, `rgba(${FACE_COLOR},0.24)`);
+        hl.addColorStop(1, `rgba(${FACE_COLOR},0)`);
+        ctx.fillStyle = hl;
+        pathHeadShape(ctx, cx, cy);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-out';
+        const sh = ctx.createRadialGradient(cx + 38, cy + 36, 10, cx + 38, cy + 36, 86);
+        sh.addColorStop(0, 'rgba(0,0,0,0.34)');
+        sh.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = sh;
+        pathHeadShape(ctx, cx, cy);
+        ctx.fill();
+        ctx.restore();
+
+        // Contour shadows along the jaw taper, one per side, to sell the
+        // angular cheekbone-to-chin planes instead of a flat round fill.
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-out';
+        [-1, 1].forEach(side => {
+            const jx = cx + side * 46, jy = cy + 48;
+            const jaw = ctx.createRadialGradient(jx, jy, 4, jx, jy, 34);
+            const strength = side === 1 ? 0.24 : 0.14; // slightly heavier on the shadow side
+            jaw.addColorStop(0, `rgba(0,0,0,${strength})`);
+            jaw.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = jaw;
+            ctx.beginPath();
+            ctx.ellipse(jx, jy, 22, 34, side * 0.35, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.restore();
+
+        // Cast shadow from the hat brim across the upper forehead.
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-out';
+        const brimShadow = ctx.createLinearGradient(cx, cy - 78, cx, cy - 40);
+        brimShadow.addColorStop(0, 'rgba(0,0,0,0.22)');
+        brimShadow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = brimShadow;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy - 60, 66, 22, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Eyebrows: bolder and furrowed, with a jester curl at the outer tip
+        ctx.strokeStyle = `rgba(${FACE_COLOR},0.85)`;
+        ctx.lineWidth = 4.5;
+        ctx.lineCap = 'round';
+        [-1, 1].forEach(side => {
+            let extraY = 0, extraAngle = 0;
+            if (tw.type === 0 && side === tw.side) {
+                extraY = -10 * tw.amount;
+                extraAngle = -0.25 * tw.amount * side;
+            }
+            ctx.save();
+            ctx.translate(cx + side * 30, cy - 36 + e.browY + extraY);
+            ctx.rotate(side * e.browAngle + extraAngle);
+            ctx.beginPath();
+            ctx.moveTo(-11, 0);
+            ctx.lineTo(11, 0);
+            // jester curl at the outer tip
+            ctx.lineTo(15, -4);
+            ctx.stroke();
+            // furrowed inner corner, angled down toward the nose bridge
+            ctx.beginPath();
+            ctx.moveTo(-11, 0);
+            ctx.lineTo(-7, 5);
+            ctx.stroke();
+            ctx.restore();
+        });
+
+        // Nose (subtle idle flare)
+        const flare = 1 + Math.sin(t * 1.7) * 0.08;
+        ctx.strokeStyle = `rgba(${FACE_COLOR},0.5)`;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 4);
+        ctx.lineTo(cx - 4 * flare, cy + 16);
+        ctx.quadraticCurveTo(cx, cy + 21, cx + 4 * flare, cy + 16);
+        ctx.stroke();
+
+        // Rosy jester cheeks: light diamond outlines, plain ink (not cut)
+        ctx.strokeStyle = `rgba(${FACE_COLOR},0.35)`;
+        ctx.lineWidth = 1.5;
+        [-1, 1].forEach(side => {
+            const bx = cx + side * 56, by = cy + 6;
+            ctx.beginPath();
+            ctx.moveTo(bx, by - 9);
+            ctx.lineTo(bx + 7, by);
+            ctx.lineTo(bx, by + 9);
+            ctx.lineTo(bx - 7, by);
+            ctx.closePath();
+            ctx.stroke();
+        });
+
+        // Eyes and mouth are cut out of the head texture as real empty
+        // space (destination-out), not just low-alpha ink, so those
+        // cells sample to blank characters rather than light glyphs.
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = 'rgba(0,0,0,1)';
+
+        // Heavy-lidded brow shadow, sunken just above each eye
+        ctx.fillStyle = 'rgba(0,0,0,0.28)';
+        [-1, 1].forEach(side => {
+            ctx.beginPath();
+            ctx.ellipse(cx + side * 28, cy - 23, 15, 7, side * 0.15, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.fillStyle = 'rgba(0,0,0,1)';
+
+        [-1, 1].forEach(side => {
+            let ry = Math.max(1, 10 * e.eyeRy * (1 - p.blink));
+            if (tw.type === 2 && side === tw.side) {
+                ry = Math.max(1, ry * (1 - tw.amount * 0.9)); // wink
+            } else if (tw.type === 3) {
+                ry = ry * (1 + tw.amount * 0.35); // wide-eyed flash
+            }
+            const ex = cx + side * 28, ey = cy - 16;
+            const rot = side * 0.18;
+            // left eye is jaggier/wilder (paired with the X pupil), right
+            // eye keeps a gentler wobble (paired with the plain dot pupil)
+            const spikes = side === -1 ? 7 : 5;
+            const amt = side === -1 ? 0.30 : 0.16;
+
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.fillStyle = 'rgba(0,0,0,1)';
+            pathCrazyEye(ctx, ex, ey, 13, ry, rot, spikes, amt);
+            ctx.fill();
+
+            ctx.globalCompositeOperation = 'source-over';
+            drawPupil(ctx, ex, ey, ry, side === -1 ? 'x' : 'circle');
+        });
+
+        const openAmt = Math.min(1, e.restOpen + p.level);
+        const curveY = -e.mouthCurve * 8;
+        const openH = 8 + openAmt * 30;
+        const mw = 42, my = cy + 42;
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = 'rgba(0,0,0,1)';
+        if (tw.type === 1) {
+            // impish asymmetric smirk
+            ctx.translate(cx, my);
+            ctx.rotate(0.12 * tw.amount * tw.side);
+            ctx.translate(-cx, -my);
+        }
+        ctx.beginPath();
+        ctx.moveTo(cx - mw, my + curveY);
+        ctx.quadraticCurveTo(cx, my + curveY - openH * 0.5, cx + mw, my + curveY);
+        ctx.quadraticCurveTo(cx, my + curveY + openH, cx - mw, my + curveY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // soft shadow under the pointed chin for depth
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy + 78, 24, 12, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.24)';
+        ctx.fill();
+
+        ctx.globalCompositeOperation = 'source-over';
+
+        // A permanent jagged row of teeth stretching most of the mouth's
+        // width, present even at rest — a fixed, unsettling grin rather
+        // than something that only appears once the mouth opens wide.
+        {
+            ctx.save();
+            ctx.strokeStyle = `rgba(${FACE_COLOR},0.75)`;
+            ctx.lineWidth = 1.3;
+            const teethY = my + curveY - openH * 0.12;
+            const teethSpan = mw * 0.86;
+            ctx.beginPath();
+            ctx.moveTo(cx - teethSpan, teethY);
+            ctx.lineTo(cx + teethSpan, teethY);
+            ctx.stroke();
+            const teethCount = 8;
+            for (let i = 0; i <= teethCount; i++) {
+                const frac = i / teethCount - 0.5;
+                const tx = cx + frac * teethSpan * 2;
+                // alternate tooth length for a jagged, sawtooth grin
+                const len = 4 + (i % 2 === 0 ? 3 : 0) + openAmt * 3;
+                ctx.beginPath();
+                ctx.moveTo(tx, teethY);
+                ctx.lineTo(tx, teethY + len);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        ctx.restore();
+    }
+
+    function renderAsciiFrame(p) {
+        const ctx = getCanvasCtx();
+
+        // POV-display trick: a physical spinning LED strip doesn't show a
+        // sharp flat frame — persistence of vision blends everything the
+        // strip swept through during one glimpse into a solid-looking
+        // volume. We fake the same thing here: figure out how far the turn
+        // travels during this rendered frame, and if that's enough to
+        // register as "fast", sample several angles across the sweep and
+        // blend them (via reduced alpha, undrawn between samples) instead
+        // of drawing one sharp instant. Overlapping regions land opaque,
+        // only the leading/trailing edge stays soft — that softness reads
+        // as roundness rather than a flat card flipping edge-on.
+        const period = p.turnPeriod || TURN_PERIOD;
+        const angularVelocity = (Math.PI * 2) / period; // radians/sec
+        const exposure = Math.min(p.frameDt || 0, 0.09); // cap: a stalled/huge frame shouldn't smear the whole canvas
+        const sweep = angularVelocity * exposure; // radians covered this frame
+
+        if (sweep > 0.05) {
+            const samples = Math.min(10, Math.max(3, Math.round(sweep / 0.12) + 3));
+            const sweepTurnT = sweep * TURN_PERIOD / (Math.PI * 2); // convert radians back into turnT units
+            for (let i = 0; i < samples; i++) {
+                const frac = (i / (samples - 1)) - 0.5; // spread -0.5..0.5 across the sweep
+                const subP = Object.assign({}, p, { turnT: p.turnT + frac * sweepTurnT });
+                ctx.globalAlpha = Math.min(1, (1 / samples) * 1.6); // slight boost so full overlap still reaches opaque
+                drawFace(ctx, subP, { clear: i === 0 });
+            }
+            ctx.globalAlpha = 1;
+        } else {
+            drawFace(ctx, p, { clear: true });
+        }
+
+        const img = ctx.getImageData(0, 0, CANVAS_W, CANVAS_H).data;
+        const seed = Math.floor(p.t / 0.6); // gentle texture shimmer, not per-frame flicker
+        let out = '';
+        for (let row = 0; row < GRID_ROWS; row++) {
+            const py = Math.min(CANVAS_H - 1, Math.floor(row * CELL_H + CELL_H / 2));
+            let line = '';
+            for (let col = 0; col < GRID_COLS; col++) {
+                const px = Math.min(CANVAS_W - 1, Math.floor(col * CELL_W + CELL_W / 2));
+                const alpha = img[(py * CANVAS_W + px) * 4 + 3] / 255;
+                line += charForAlpha(alpha, col, row, seed);
+            }
+            out += line + '\n';
+        }
+        const el = document.getElementById('ascii-face');
+        if (el) {
+            el.textContent = out;
+            // Companion-style dynamic lighting: brightest facing the viewer,
+            // dimmer edge-on during the turn, with a soft idle shimmer —
+            // same pattern as the centipede's per-segment filter brightness.
+            const turnAngle = ((p.turnT !== undefined ? p.turnT : p.t) / TURN_PERIOD) * Math.PI * 2;
+            const facing = Math.abs(Math.cos(turnAngle));
+            const shimmer = 1 + Math.sin(p.t * 1.3) * 0.08;
+            const brightness = (1.05 + 0.75 * facing) * shimmer;
+            el.style.filter = `brightness(${brightness.toFixed(3)})`;
+        }
+        window.faceState.lastAsciiText = out;
+    }
+
+    function setStatus(text) {
+        const el = document.getElementById('face-status');
+        if (el) el.textContent = text;
+    }
+
+    function currentTime() {
+        if (window.faceState.startTime === null) window.faceState.startTime = performance.now();
+        return (performance.now() - window.faceState.startTime) / 1000;
+    }
+
+    function updateBlink(t) {
+        const s = window.faceState;
+        if (s.blinkStart === null && t >= s.nextBlink) s.blinkStart = t;
+        if (s.blinkStart !== null) {
+            const elapsed = t - s.blinkStart, dur = 0.16;
+            if (elapsed >= dur) {
+                s.blinkStart = null;
+                s.nextBlink = t + 2.5 + Math.random() * 3.5;
+                return 0;
+            }
+            const pr = elapsed / dur;
+            return pr < 0.5 ? pr * 2 : (1 - pr) * 2;
+        }
+        return 0;
+    }
+
+    // Occasional random micro-expression: a raised brow, a wink, a wide-eyed
+    // flash, or an impish smirk, on a random side, easing in and back out.
+    function updateTwitch(t) {
+        const s = window.faceState;
+        if (s.twitchStart === null && t >= s.nextTwitch) {
+            s.twitchStart = t;
+            s.twitchType = Math.floor(Math.random() * 4);
+            s.twitchSide = Math.random() < 0.5 ? -1 : 1;
+            s.twitchDur = 0.35 + Math.random() * 0.35;
+        }
+        if (s.twitchStart !== null) {
+            const elapsed = t - s.twitchStart;
+            if (elapsed >= s.twitchDur) {
+                s.twitchStart = null;
+                s.nextTwitch = t + 3 + Math.random() * 5;
+                return { type: -1, side: 1, amount: 0 };
+            }
+            const pr = elapsed / s.twitchDur;
+            const amount = pr < 0.5 ? pr * 2 : (1 - pr) * 2;
+            return { type: s.twitchType, side: s.twitchSide, amount };
+        }
+        return { type: -1, side: 1, amount: 0 };
+    }
+
+    function cleanupAudioGraph() {
+        const s = window.faceState;
+        if (s.source) { try { s.source.disconnect(); } catch (e) { } }
+        if (s.analyser) { try { s.analyser.disconnect(); } catch (e) { } }
+        if (s.audioDest) { try { s.audioDest.disconnect(); } catch (e) { } }
+        if (s.audioCtx) { try { s.audioCtx.close(); } catch (e) { } }
+        if (s.objectUrl) { URL.revokeObjectURL(s.objectUrl); }
+        s.audioCtx = null;
+        s.analyser = null;
+        s.source = null;
+        s.audioDest = null;
+        s.objectUrl = null;
+    }
+
+    function resetTurnRhythm() {
+        const s = window.faceState;
+        s.lastOnsetTime = null;
+        s.onsetIntervals = [];
+        s.wasTalking = false;
+    }
+
+    window.handleAudioFile = function (event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        cleanupAudioGraph();
+        resetTurnRhythm();
+        const url = URL.createObjectURL(file);
+        window.faceState.objectUrl = url;
+        const audioEl = document.getElementById('face-audio');
+        audioEl.src = url;
+        setStatus('Loaded: ' + file.name + ' — press Play');
+    };
+
+    function ensureAudioGraph(audioEl) {
+        const s = window.faceState;
+        if (!s.audioCtx) {
+            s.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            s.analyser = s.audioCtx.createAnalyser();
+            s.analyser.fftSize = 512;
+            s.source = s.audioCtx.createMediaElementSource(audioEl);
+            s.source.connect(s.analyser);
+            s.analyser.connect(s.audioCtx.destination);
+            s.dataArray = new Uint8Array(s.analyser.fftSize);
+        }
+        return s.audioCtx.resume();
+    }
+
+    window.playFace = function () {
+        const audioEl = document.getElementById('face-audio');
+        if (!audioEl.src) {
+            setStatus('Upload an audio clip first');
+            return;
+        }
+        ensureAudioGraph(audioEl);
+        audioEl.play();
+        setStatus('Playing');
+    };
+
+    window.pauseFace = function () {
+        document.getElementById('face-audio').pause();
+        setStatus('Paused');
+    };
+
+    window.stopFace = function () {
+        const audioEl = document.getElementById('face-audio');
+        audioEl.pause();
+        audioEl.currentTime = 0;
+        resetTurnRhythm();
+        setStatus('Stopped');
+    };
+
+    window.setEmotion = function (value) {
+        window.faceState.emotion = value;
+    };
+
+    window.setSensitivity = function (value) {
+        window.faceState.sensitivity = parseInt(value, 10);
+        const label = document.getElementById('sensitivity-value');
+        if (label) label.textContent = value;
+    };
+
+    window.setSpinEnabled = function (checked) {
+        window.faceState.spinEnabled = checked;
+    };
+
+    // Single continuous loop: runs from page load (idle blink/breathe/sway)
+    // and picks up mouth movement from the analyser whenever audio is playing.
+    function mainTick() {
+        const s = window.faceState;
+        const t = currentTime();
+        const blink = updateBlink(t);
+        const twitch = updateTwitch(t);
+
+        let target = 0;
+        let energy = 0.3;
+        const audioEl = document.getElementById('face-audio');
+
+        if (s.analyser && audioEl && !audioEl.paused) {
+            s.analyser.getByteTimeDomainData(s.dataArray);
+            let sum = 0;
+            for (let i = 0; i < s.dataArray.length; i++) {
+                const v = (s.dataArray[i] - 128) / 128;
+                sum += v * v;
+            }
+            const rms = Math.sqrt(sum / s.dataArray.length);
+            target = Math.min(1, rms * (s.sensitivity * 3));
+            energy = 0.3 + target * 1.2;
+        }
+
+        s.smoothedLevel += (target - s.smoothedLevel) * (target > s.smoothedLevel ? 0.5 : 0.15);
+
+        if (s.lastFrameT === null) s.lastFrameT = t;
+        const dt = Math.max(0, Math.min(0.25, t - s.lastFrameT));
+        s.lastFrameT = t;
+        const isTalking = s.smoothedLevel > 0.04;
+
+        // Rhythm-locked turn: instead of freezing the spin during speech,
+        // detect each burst's onset (the moment the mouth starts moving
+        // after being quiet) and measure the gap since the previous onset.
+        // The face is timed to complete exactly one full 360° turn over
+        // that gap, landing back at 0° (facing forward) right as the next
+        // burst begins — quick chatter spins fast, a slow cadence spins
+        // slow, and it never just stops.
+        if (isTalking && !s.wasTalking) {
+            if (s.lastOnsetTime !== null) {
+                const gap = t - s.lastOnsetTime;
+                if (gap >= MIN_TURN_PERIOD && gap <= MAX_TURN_PERIOD) {
+                    s.onsetIntervals.push(gap);
+                    if (s.onsetIntervals.length > ONSET_HISTORY) s.onsetIntervals.shift();
+                }
+            }
+            s.lastOnsetTime = t;
+        }
+        s.wasTalking = isTalking;
+
+        let turnT;
+        let turnPeriod;
+        if (!s.spinEnabled) {
+            // Spin turned off — hold at 0° (facing forward), no rotation
+            // and no motion-blur sampling (sweep works out to ~0).
+            turnT = 0;
+            turnPeriod = TURN_PERIOD;
+        } else if (s.lastOnsetTime !== null && s.onsetIntervals.length > 0) {
+            turnPeriod = s.onsetIntervals.reduce((a, b) => a + b, 0) / s.onsetIntervals.length;
+            const sinceOnset = t - s.lastOnsetTime;
+            // Rescale onto the existing TURN_PERIOD-based angle formula so
+            // 0° lines up with sinceOnset === 0 and a full turn completes
+            // every `period` seconds instead of every TURN_PERIOD seconds.
+            turnT = sinceOnset * (TURN_PERIOD / turnPeriod);
+        } else {
+            // No rhythm established yet (silence, or only one burst so far)
+            // — fall back to the slow idle spin.
+            s.turnAccum += dt;
+            turnT = s.turnAccum;
+            turnPeriod = TURN_PERIOD;
+        }
+
+        renderAsciiFrame({ t, turnT, turnPeriod, frameDt: dt, level: s.smoothedLevel, blink, emotion: s.emotion, energy, twitch });
+
+        if (audioEl && audioEl.ended) setStatus('Finished');
+
+        s.rafId = requestAnimationFrame(mainTick);
+    }
+
+    // --- Video export -------------------------------------------------
+    // The old exporter sampled `lastAsciiText` on a setTimeout every
+    // ~1000/fps ms while audio played, capped at 30s, then packed those
+    // snapshots into an APNG. Two things went wrong with that: setTimeout
+    // drifts under load (so the sample count could fall short of the real
+    // elapsed audio time, cutting the export short of the clip's actual
+    // length), and APNG carries no audio track at all, so "lip sync" only
+    // ever meant "this happened to be captured near the right moment."
+    //
+    // This version records the canvas and the real Web Audio output
+    // together with MediaRecorder: a dedicated recording canvas is redrawn
+    // every animation frame from the same `lastAsciiText` the on-screen
+    // face is already using, and the recorder's video track is muxed with
+    // an audio track tapped straight off the audio graph. Because both
+    // tracks come from the same real-time playback pass, the export is
+    // exactly as long as the clip (recording stops on the audio's own
+    // `ended` event, not a frame-count guess) and the mouth shapes can't
+    // drift out of sync with the sound driving them. The tradeoff is no
+    // transparency — MediaRecorder's WebM output doesn't carry alpha
+    // reliably across browsers — so the background is baked in as solid
+    // black instead, matching the on-screen display.
+    function setDownloadStatus(text) {
+        const el = document.getElementById('download-status');
+        if (el) el.textContent = text;
+    }
+
+    function getAudioDuration(audioEl) {
+        if (isFinite(audioEl.duration) && audioEl.duration > 0) {
+            return Promise.resolve(audioEl.duration);
+        }
+        return new Promise((resolve) => {
+            const finish = () => {
+                audioEl.removeEventListener('loadedmetadata', finish);
+                clearTimeout(timer);
+                resolve(isFinite(audioEl.duration) && audioEl.duration > 0 ? audioEl.duration : null);
+            };
+            audioEl.addEventListener('loadedmetadata', finish);
+            const timer = setTimeout(finish, 1500); // don't hang forever if metadata never fires
+        });
+    }
+
+    // Draws one frame's ASCII text with the same layered glow as the
+    // on-screen CSS (.ascii-face's text-shadow: a tight white core plus
+    // three widening green haloes), using additive ('lighter') compositing
+    // so overlapping glow builds up brightness the way real neon bloom
+    // does — and, unlike the old GIF path, the alpha channel is left
+    // exactly as the canvas rendered it: soft glow edges stay soft,
+    // background stays truly transparent.
+    function drawGlowFrame(ctx, w, h, lines, fontSize, lineHeight, scale, bgColor) {
+        ctx.clearRect(0, 0, w, h);
+        if (bgColor) {
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, w, h);
+        }
+        ctx.textBaseline = 'top';
+        ctx.font = `${fontSize}px Consolas, Menlo, monospace`;
+
+        const glowLayers = [
+            { blur: 42 * scale, color: 'rgba(0,255,102,0.4)' },
+            { blur: 26 * scale, color: 'rgba(0,255,102,0.7)' },
+            { blur: 14 * scale, color: 'rgba(0,255,102,0.95)' },
+            { blur: 6 * scale, color: 'rgba(255,255,255,0.9)' }
+        ];
+
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = '#00ff66';
+        glowLayers.forEach(layer => {
+            ctx.shadowColor = layer.color;
+            ctx.shadowBlur = layer.blur;
+            for (let i = 0; i < lines.length; i++) ctx.fillText(lines[i], 0, i * lineHeight);
+        });
+
+        // Crisp core on top, no shadow, normal blending.
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
+        ctx.fillStyle = '#eaffef';
+        for (let i = 0; i < lines.length; i++) ctx.fillText(lines[i], 0, i * lineHeight);
+    }
+
+    function pickVideoMimeType() {
+        const candidates = [
+            'video/webm;codecs=vp9,opus',
+            'video/webm;codecs=vp8,opus',
+            'video/webm'
+        ];
+        for (const type of candidates) {
+            if (window.MediaRecorder && MediaRecorder.isTypeSupported(type)) return type;
+        }
+        return ''; // let the browser pick a default
+    }
+
+    window.downloadFaceVideo = async function () {
+        const btn = document.getElementById('download-gif-btn');
+        const audioEl = document.getElementById('face-audio');
+
+        if (!audioEl || !audioEl.src) {
+            setDownloadStatus('Upload an audio clip first');
+            return;
+        }
+        if (!window.MediaRecorder) {
+            setDownloadStatus('This browser can\'t record video — see console');
+            console.error('MediaRecorder API not available.');
+            return;
+        }
+
+        if (btn) btn.disabled = true;
+        let drawing = false;
+        let rafId = null;
+
+        try {
+            setDownloadStatus('Reading audio length…');
+            const audioDuration = await getAudioDuration(audioEl);
+
+            setDownloadStatus('Setting up recorder…');
+            await ensureAudioGraph(audioEl);
+            const s = window.faceState;
+
+            // Tap the existing audio graph into a MediaStreamDestination so
+            // the real playback audio can be muxed into the recording. This
+            // fans out alongside the analyser's existing connection to the
+            // speakers (audioCtx.destination) — playback out loud continues
+            // unaffected.
+            if (!s.audioDest) {
+                s.audioDest = s.audioCtx.createMediaStreamDestination();
+                s.analyser.connect(s.audioDest);
+            }
+
+            const scale = 2;
+            const fontSize = 11 * scale;
+            const lineHeight = 12 * scale;
+            const charWidth = fontSize * 0.6;
+            const w = Math.ceil(charWidth * GRID_COLS);
+            const h = Math.ceil(lineHeight * GRID_ROWS);
+
+            const recCanvas = document.createElement('canvas');
+            recCanvas.width = w;
+            recCanvas.height = h;
+            const rctx = recCanvas.getContext('2d');
+
+            const fps = 24;
+            const canvasStream = recCanvas.captureStream(fps);
+            const audioTrack = s.audioDest.stream.getAudioTracks()[0];
+            const combined = new MediaStream([
+                ...canvasStream.getVideoTracks(),
+                ...(audioTrack ? [audioTrack] : [])
+            ]);
+
+            const mimeType = pickVideoMimeType();
+            const recorder = new MediaRecorder(combined, mimeType
+                ? { mimeType, videoBitsPerSecond: 6_000_000 }
+                : { videoBitsPerSecond: 6_000_000 });
+            const chunks = [];
+            recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+            const recorderStopped = new Promise((resolve) => { recorder.onstop = resolve; });
+
+            // Redraw the recording canvas from the same live `lastAsciiText`
+            // the on-screen face is using, every animation frame, with a
+            // solid black backdrop baked in. Since this reads the same data
+            // mainTick() is already producing in real time, it can't drift
+            // from what's actually driving the mouth.
+            function drawLoop() {
+                if (!drawing) return;
+                const text = window.faceState.lastAsciiText || '';
+                drawGlowFrame(rctx, w, h, text.split('\n'), fontSize, lineHeight, scale, '#000000');
+                rafId = requestAnimationFrame(drawLoop);
+            }
+
+            // Play from the start so the export matches the clip start to
+            // finish, and remember where playback actually was so it can be
+            // restored once recording is done.
+            const resumeState = { time: audioEl.currentTime, wasPaused: audioEl.paused };
+            audioEl.pause();
+            audioEl.currentTime = 0;
+
+            drawing = true;
+            recorder.start(250); // collect chunks every 250ms
+            rafId = requestAnimationFrame(drawLoop);
+            try { await audioEl.play(); } catch (e) { /* autoplay restrictions, ignore */ }
+            setStatus('Recording…');
+
+            // Primary stop trigger is the audio's own `ended` event, so the
+            // recording is exactly the clip's length. A backup timer (clip
+            // length + margin) guards against `ended` never firing — e.g. a
+            // stream with unreadable duration.
+            await new Promise((resolve) => {
+                let settled = false;
+                const finish = () => {
+                    if (settled) return;
+                    settled = true;
+                    audioEl.removeEventListener('ended', finish);
+                    resolve();
+                };
+                audioEl.addEventListener('ended', finish);
+                const fallbackMs = audioDuration ? (audioDuration + 2) * 1000 : 5 * 60 * 1000;
+                setTimeout(finish, fallbackMs);
+
+                const progressTimer = setInterval(() => {
+                    if (settled) { clearInterval(progressTimer); return; }
+                    if (audioDuration) {
+                        const pct = Math.min(100, Math.round((audioEl.currentTime / audioDuration) * 100));
+                        setDownloadStatus(`Recording… ${pct}%`);
+                    } else {
+                        setDownloadStatus(`Recording… ${audioEl.currentTime.toFixed(1)}s`);
+                    }
+                }, 200);
+                recorderStopped.then(() => clearInterval(progressTimer));
+            });
+
+            drawing = false;
+            if (rafId) cancelAnimationFrame(rafId);
+            recorder.stop();
+            await recorderStopped;
+
+            audioEl.pause();
+            audioEl.currentTime = resumeState.time;
+            if (!resumeState.wasPaused) { try { await audioEl.play(); } catch (e) { } }
+            setStatus('Idle — upload an audio clip to begin');
+
+            setDownloadStatus('Preparing download…');
+            const blob = new Blob(chunks, { type: mimeType || 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ascii-jester-face.webm';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+            setDownloadStatus('Downloaded!');
+            setTimeout(() => setDownloadStatus(''), 2500);
+        } catch (err) {
+            console.error('Error exporting video:', err);
+            setDownloadStatus('Export failed — see console');
+        } finally {
+            drawing = false;
+            if (rafId) cancelAnimationFrame(rafId);
+            if (btn) btn.disabled = false;
+        }
+    };
+
+    window.initTalkingFace = function () {
+        const s = window.faceState;
+        if (s.rafId) cancelAnimationFrame(s.rafId);
+        s.rafId = requestAnimationFrame(mainTick);
+    };
+
+    window.cleanupTalkingFace = function () {
+        if (window.faceState.rafId) cancelAnimationFrame(window.faceState.rafId);
+        cleanupAudioGraph();
+    };
+</script>
