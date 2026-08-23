@@ -1,0 +1,119 @@
+.upload-section {
+    width: 100%;
+    max-width: 700px;
+    margin: 20px auto;
+    text-align: center;
+}
+
+.left_display h1 {
+    text-align: center;
+}
+
+input[type="file"] {
+    color: #e5e5e5;
+    font-family: 'Consolas', monospace;
+    background-color: black;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 10px;
+    margin: 10px auto;
+}
+
+    input[type="file"]::file-selector-button {
+        background-color: #A5C9FF;
+        color: #212121;
+        border: none;
+        border-radius: 12px;
+        padding: 8px 14px;
+        margin-right: 12px;
+        font-family: 'Consolas', monospace;
+        cursor: pointer;
+        transition: all 0.1s ease-in-out;
+    }
+
+        input[type="file"]::file-selector-button:hover {
+            background-color: transparent;
+            border: 1px solid #A5C9FF;
+            color: #A5C9FF;
+        }
+
+.stats-section {
+    margin: 20px 0;
+    padding: 15px 20px;
+    background-color: #111;
+    border: 1px solid #333;
+    border-radius: 15px;
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.stat-value {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #A5C9FF;
+}
+
+.color-text {
+    color: #e5e5e5;
+    font-family: monospace;
+}
+
+.setting-group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 15px 0;
+    flex-wrap: wrap;
+}
+
+.setting-label {
+    text-align: right;
+}
+
+#error {
+    color: darkred;
+    font-size: 0.9rem;
+}
+
+.sticky_left {
+    text-align: left;
+}
+
+    .sticky_left ul {
+        padding-left: 20px;
+    }
+
+    .sticky_left li {
+        margin: 4px 0;
+    }
+
+button {
+    margin: 6px;
+}
+
+    button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+        button:disabled:hover {
+            background-color: #A5C9FF;
+            color: #212121;
+            border-color: transparent;
+        }
+
+@media (max-width: 768px) {
+    .upload-section {
+        width: 95%;
+    }
+}
