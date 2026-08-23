@@ -973,6 +973,126 @@ h1[inherit-scope] {
             color: #A5C9FF;
             background-color: rgba(165, 201, 255, 0.1);
         }
+/* /Pages/DlensToMoxfield.razor.rz.scp.css */
+.upload-section[inherit-scope] {
+    width: 100%;
+    max-width: 700px;
+    margin: 20px auto;
+    text-align: center;
+}
+
+.left_display h1[inherit-scope] {
+    text-align: center;
+}
+
+input[type="file"][inherit-scope] {
+    color: #e5e5e5;
+    font-family: 'Consolas', monospace;
+    background-color: black;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 10px;
+    margin: 10px auto;
+}
+
+    input[type="file"][inherit-scope]::file-selector-button {
+        background-color: #A5C9FF;
+        color: #212121;
+        border: none;
+        border-radius: 12px;
+        padding: 8px 14px;
+        margin-right: 12px;
+        font-family: 'Consolas', monospace;
+        cursor: pointer;
+        transition: all 0.1s ease-in-out;
+    }
+
+        input[type="file"][inherit-scope]::file-selector-button:hover {
+            background-color: transparent;
+            border: 1px solid #A5C9FF;
+            color: #A5C9FF;
+        }
+
+.stats-section[inherit-scope] {
+    margin: 20px 0;
+    padding: 15px 20px;
+    background-color: #111;
+    border: 1px solid #333;
+    border-radius: 15px;
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.stat-item[inherit-scope] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.stat-value[inherit-scope] {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #A5C9FF;
+}
+
+.color-text[inherit-scope] {
+    color: #e5e5e5;
+    font-family: monospace;
+}
+
+.setting-group[inherit-scope] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 15px 0;
+    flex-wrap: wrap;
+}
+
+.setting-label[inherit-scope] {
+    text-align: right;
+}
+
+#error[inherit-scope] {
+    color: darkred;
+    font-size: 0.9rem;
+}
+
+.sticky_left[inherit-scope] {
+    text-align: left;
+}
+
+    .sticky_left ul[inherit-scope] {
+        padding-left: 20px;
+    }
+
+    .sticky_left li[inherit-scope] {
+        margin: 4px 0;
+    }
+
+button[inherit-scope] {
+    margin: 6px;
+}
+
+    button:disabled[inherit-scope] {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+        button:disabled:hover[inherit-scope] {
+            background-color: #A5C9FF;
+            color: #212121;
+            border-color: transparent;
+        }
+
+@media (max-width: 768px) {
+    .upload-section[inherit-scope] {
+        width: 95%;
+    }
+}
 /* /Pages/Eraser.razor.rz.scp.css */
 .upload-section[inherit-scope] {
     width: 100%;
