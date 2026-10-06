@@ -1,0 +1,2075 @@
+@page "/mtg-card-3mf"
+@using System.Globalization
+@using System.IO
+@using System.IO.Compression
+@using System.Text
+@using System.Text.Json
+@using Microsoft.AspNetCore.Components.Forms
+@inject IJSRuntime JS
+<BackButton />
+
+<h1 style="cursor: pointer;font-family:Consolas;" @onclick="ToggleDescription">MTG Card to 3MF</h1>
+
+<div class="left_display">
+    @if (showDescription)
+    {
+        <div class="sticky_left">
+            <p>Turns a picture of a Magic: The Gathering card into a flat, multi-color 3MF file for a multi-filament printer (set up for a Bambu Lab A1 mini, 0.4 mm nozzle, PLA).</p>
+            <p><strong>How to use:</strong></p>
+            <ul>
+                <li>Load the card front (a Gatherer or Scryfall image works well). Loading a back is optional.</li>
+                <li>Pick 1-4 colors. The swatches update as soon as an image is loaded or the color count changes, and you can click one to change a filament color.</li>
+                <li>Choose a layout: keep the original card, shrink the art so the text can be redrawn bigger, or build a whole frame around plain art.</li>
+                <li>Click "Generate 3MF" to download the file. The swatches are an estimate until you generate; the final palette (with your edits) is what gets exported.</li>
+            </ul>
+            <p><strong>Tips:</strong> A 0.4 mm nozzle cannot print tiny card text, so the print-friendly layout redraws the rules text in a bold font. Use "Fetch from Scryfall" to fill in the name, type, rules text and P/T. The back is mirrored in the 3MF so it reads correctly when you flip the card over like a page.</p>
+        </div>
+    }
+
+    <div class="mtg-page">
+
+        <div class="upload-section">
+            <label class="card-button">
+                Load Front
+                <InputFile class="file-input" accept="image/*" OnChange="LoadFront" />
+            </label>
+            <label class="card-button">
+                Load Back
+                <InputFile class="file-input" accept="image/*" OnChange="LoadBack" />
+            </label>
+            <button class="card-button card-button-back" @onclick="ClearBack" disabled="@(!hasBack)">Built-in Back</button>
+            <div class="color-text file-status">
+                Front: @(hasFront ? frontFile : "none loaded") &nbsp;|&nbsp; Back: @(hasBack ? backFile : "built-in design")
+            </div>
+        </div>
+
+        @if (palette != null)
+        {
+            <div class="swatch-row">
+                @for (var i = 0; i < palette.Length; i++)
+                {
+                    var idx = i;
+                    var c = palette[idx];
+                    <label class="swatch" style="background-color:@Hex(c);color:@(c[0] + c[1] + c[2] < 380 ? "#fff" : "#000")">
+                        Filament @(idx + 1)
+                        <input type="color" value="@Hex(c)" @onchange="@(async e => await SetPaletteColor(idx, e.Value?.ToString()))" />
+                    </label>
+                }
+            </div>
+            <div class="swatch-hint color-text">Click a swatch to change that filament color</div>
+        }
+
+        @if (res != null)
+        {
+            <div class="stats-section">
+                <div class="stat-item">
+                    <span class="color-text">Size:</span>
+                    <span class="stat-value">@infoSize</span>
+                </div>
+                <div class="stat-item">
+                    <span class="color-text">Thickness:</span>
+                    <span class="stat-value">@infoThickness</span>
+                </div>
+                <div class="stat-item">
+                    <span class="color-text">Pixel grid:</span>
+                    <span class="stat-value">@infoGrid</span>
+                </div>
+            </div>
+        }
+
+        <div class="settings-grid">
+
+            <div class="panel">
+                <div class="session-label">Card</div>
+                <div class="setting-group">
+                    <span class="color-text setting-label">Colors:</span>
+                    <div class="setting-control">
+                        <input type="range" min="1" max="4" value="@nColors" class="tolerance-slider"
+                               @oninput="ChgPalette(v => { nColors = int.Parse(v); overrides = new byte[4][]; })" />
+                        <span class="color-text setting-value">@nColors</span>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <span class="color-text setting-label">Card size:</span>
+                    <div class="setting-control">
+                        <select class="mtg-select" value="@sizePreset" @onchange="Chg(v => sizePreset = v)">
+                            @foreach (var s in SizePresets)
+                            {
+                                <option value="@s.Name">@s.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                @if (sizePreset == CustomSizeName)
+                {
+                    <div class="setting-group">
+                        <span class="color-text setting-label">Custom width (mm):</span>
+                        <div class="setting-control">
+                            <input type="number" step="1" class="mtg-input mtg-input-short" value="@customWidth"
+                                   @onchange="Chg(v => customWidth = v)" />
+                        </div>
+                    </div>
+                }
+                <div class="setting-group">
+                    <span class="color-text setting-label">Detail (mm / pixel):</span>
+                    <div class="setting-control">
+                        <select class="mtg-select" value="@resMm" @onchange="Chg(v => resMm = v)">
+                            @foreach (var d in DetailChoices)
+                            {
+                                <option value="@d">@d</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="session-label">Layers</div>
+                <div class="setting-group">
+                    <span class="color-text setting-label">Front color layers (mm):</span>
+                    <div class="setting-control">
+                        <input type="number" step="0.1" min="0.1" class="mtg-input mtg-input-short" value="@frontMm"
+                               @onchange="Chg(v => frontMm = v)" />
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <span class="color-text setting-label">Back color layers (mm):</span>
+                    <div class="setting-control">
+                        <input type="number" step="0.1" min="0.1" class="mtg-input mtg-input-short" value="@backMm"
+                               @onchange="Chg(v => backMm = v)" />
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <span class="color-text setting-label">Solid core between (mm):</span>
+                    <div class="setting-control">
+                        <input type="number" step="0.1" min="0" class="mtg-input mtg-input-short" value="@coreMm"
+                               @onchange="Chg(v => coreMm = v)" />
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <span class="color-text setting-label">Core color:</span>
+                    <div class="setting-control">
+                        <select class="mtg-select" value="@coreColor" @onchange="Chg(v => coreColor = v)">
+                            <option value="Darkest">Darkest</option>
+                            <option value="Lightest">Lightest</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <span class="color-text setting-label">Print layer height (mm):</span>
+                    <div class="setting-control">
+                        <input type="number" step="0.04" min="0.08" max="0.28" class="mtg-input mtg-input-short" value="@layerH"
+                               @onchange="Chg(v => layerH = v)" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="session-label">Clean-up</div>
+                <div class="setting-group">
+                    <span class="color-text setting-label">Smoothing:</span>
+                    <div class="setting-control">
+                        <input type="range" min="0" max="3" value="@smoothing" class="tolerance-slider"
+                               @onchange="Chg(v => smoothing = int.Parse(v))" />
+                        <span class="color-text setting-value">@smoothing</span>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <span class="color-text setting-label">Text sharpen:</span>
+                    <div class="setting-control">
+                        <input type="range" min="0" max="3" value="@textBoost" class="tolerance-slider"
+                               @onchange="Chg(v => textBoost = int.Parse(v))" />
+                        <span class="color-text setting-value">@textBoost</span>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <span class="color-text setting-label">Text type:</span>
+                    <div class="setting-control">
+                        <select class="mtg-select" value="@textType" @onchange="Chg(v => textType = v)" disabled="@(textBoost == 0)">
+                            <option value="Dark on light">Dark on light</option>
+                            <option value="Light on dark">Light on dark</option>
+                            <option value="Both">Both</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <span class="color-text setting-label">Share palette front/back:</span>
+                    <div class="setting-control">
+                        <input type="checkbox" checked="@balanceBack" disabled="@(!hasBack)"
+                               @onchange="ChgBoolPalette(v => balanceBack = v)" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="session-label">Back design</div>
+                @if (hasBack)
+                {
+                    <div class="panel-note color-text">A back image is loaded. Use "Built-in Back" above to switch to the generated one.</div>
+                }
+                else
+                {
+                    <div class="setting-group">
+                        <span class="color-text setting-label">Built-in design:</span>
+                        <div class="setting-control">
+                            <select class="mtg-select" value="@backStyle" @onchange="Chg(v => backStyle = v)">
+                                <option value="MTG-style">MTG-style</option>
+                                <option value="Blank">Blank (one color)</option>
+                            </select>
+                        </div>
+                    </div>
+                    @if (backStyle == "Blank")
+                    {
+                        <div class="setting-group">
+                            <span class="color-text setting-label">Blank back color:</span>
+                            <div class="setting-control">
+                                <select class="mtg-select" value="@backBlank" @onchange="Chg(v => backBlank = int.Parse(v))">
+                                    @for (var f = 0; f < 4; f++)
+                                    {
+                                        <option value="@f">Filament @(f + 1)</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+
+            <div class="panel panel-wide">
+                <div class="session-label">Card layout</div>
+                <div class="radio-row">
+                    <label class="radio-label">
+                        <input type="radio" name="layoutMode" value="none"
+                               checked="@(layoutMode == "none")" @onchange="Chg(v => layoutMode = v)" />
+                        Keep original
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="layoutMode" value="relayout"
+                               checked="@(layoutMode == "relayout")" @onchange="Chg(v => layoutMode = v)" />
+                        Print-friendly (smaller art, bigger text)
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="layoutMode" value="frame"
+                               checked="@(layoutMode == "frame")" @onchange="Chg(v => layoutMode = v)" />
+                        Build a frame around plain art
+                    </label>
+                </div>
+
+                @if (layoutMode == "relayout")
+                {
+                    <div class="panel-note color-text">Needs the card text below. The art shrinks, the rules box grows, and the text is redrawn in a bold font sized in mm.</div>
+                }
+                else if (layoutMode == "frame")
+                {
+                    <div class="panel-note color-text">For art with no card layout at all. Draws the border, name bar, type bar, rules box, mana cost and P/T.</div>
+                }
+
+                @if (layoutMode != "none")
+                {
+                    <div class="text-field">
+                        <div class="setting-group">
+                            <span class="color-text setting-label">Name:</span>
+                            <div class="setting-control">
+                                <input type="text" class="mtg-input" style="max-width:none" value="@cardName"
+                                       @onchange="Chg(v => cardName = v)" />
+                                <button class="card-button" style="margin:0" @onclick="FetchScryfall" disabled="@busy">Fetch from Scryfall</button>
+                            </div>
+                        </div>
+                        <div class="setting-group">
+                            <span class="color-text setting-label">Type line:</span>
+                            <div class="setting-control">
+                                <input type="text" class="mtg-input" style="max-width:none" value="@cardType"
+                                       @onchange="Chg(v => cardType = v)" />
+                            </div>
+                        </div>
+                        <div class="setting-group">
+                            <span class="color-text setting-label">P/T:</span>
+                            <div class="setting-control">
+                                <input type="text" class="mtg-input mtg-input-short" value="@cardPt" placeholder="2/3"
+                                       @onchange="Chg(v => cardPt = v)" />
+                            </div>
+                        </div>
+                        @if (layoutMode == "frame")
+                        {
+                            <div class="setting-group">
+                                <span class="color-text setting-label">Frame color:</span>
+                                <div class="setting-control">
+                                    <select class="mtg-select" value="@frameColor" @onchange="Chg(v => frameColor = v)">
+                                        @foreach (var fl in FrameLabels)
+                                        {
+                                            <option value="@fl">@fl</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="setting-group">
+                                <span class="color-text setting-label">Mana cost:</span>
+                                <div class="setting-control">
+                                    <input type="text" class="mtg-input" value="@manaCost" placeholder="{2}{W}{W}"
+                                           @onchange="Chg(v => manaCost = v)" />
+                                </div>
+                            </div>
+                        }
+                        <div class="color-text" style="margin-bottom:6px">Rules text (one ability per line):</div>
+                        <textarea class="mtg-textarea" value="@cardText" @onchange="Chg(v => cardText = v)"></textarea>
+                    </div>
+
+                    @if (layoutMode == "relayout")
+                    {
+                        <div class="setting-group">
+                            <span class="color-text setting-label">Smallest art size:</span>
+                            <div class="setting-control">
+                                <input type="range" min="40" max="100" step="5" value="@artScalePct" class="tolerance-slider"
+                                       @onchange="Chg(v => artScalePct = int.Parse(v))" />
+                                <span class="color-text setting-value">@artScalePct%</span>
+                            </div>
+                        </div>
+                        <div class="setting-group">
+                            <span class="color-text setting-label">When the art shrinks:</span>
+                            <div class="setting-control">
+                                <select class="mtg-select" value="@artFit" @onchange="Chg(v => artFit = v)">
+                                    <option value="scale">Scale the whole art</option>
+                                    <option value="crop">Crop the top and bottom</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="setting-group">
+                            <span class="color-text setting-label">Shrink art only as needed:</span>
+                            <div class="setting-control">
+                                <input type="checkbox" checked="@artAuto" @onchange="ChgBool(v => artAuto = v)" />
+                            </div>
+                        </div>
+                        <div class="setting-group">
+                            <span class="color-text setting-label">Redraw name and type:</span>
+                            <div class="setting-control">
+                                <input type="checkbox" checked="@redrawTitles" @onchange="ChgBool(v => redrawTitles = v)" />
+                            </div>
+                        </div>
+                    }
+                    <div class="setting-group">
+                        <span class="color-text setting-label">Drop (reminder text):</span>
+                        <div class="setting-control">
+                            <input type="checkbox" checked="@dropReminder" @onchange="ChgBool(v => dropReminder = v)" />
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="panel panel-wide">
+                <div class="session-label">Slicer file</div>
+                <div class="setting-group">
+                    <span class="color-text setting-label">Embedded settings:</span>
+                    <div class="setting-control">
+                        <select class="mtg-select" value="@embedMode" @onchange="Chg(v => embedMode = v)">
+                            @foreach (var m in EmbedModes)
+                            {
+                                <option value="@m.Key">@m.Label</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="panel-note color-text">If Bambu Studio says "Invalid configuration file", switch to a smaller set of embedded settings.</div>
+            </div>
+        </div>
+
+        <div class="export-section">
+            <button class="card-button card-button-wide" @onclick="Generate" disabled="@(!hasFront || busy)">Generate 3MF</button>
+            <div class="color-text status-text @(statusIsError ? "status-error" : "")">@status</div>
+            @if (!string.IsNullOrEmpty(warning))
+            {
+                <div class="color-text status-text status-warn">@warning</div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    // =====================================================================================
+    // Constants (straight from mtg_card_gen.py)
+    // =====================================================================================
+    private const double BaseW = 63.0, BaseH = 88.0, BaseR = 3.0;
+    private const int PxMm = 16, CW = 1008, CH = 1408;     // 16 px/mm layout canvas
+    private const double TextTargetMm = 3.0, TextMaxMm = 4.2, TextMinMm = 2.2;
+    private const double PtTop = 0.8780;
+    private const double LayerMin = 0.08, LayerMax = 0.28;
+    private const int TextSS = 3;
+    private const string CustomSizeName = "Custom width...";
+
+    private const string PrinterName = "Bambu Lab A1 mini 0.4 nozzle";
+    private const string PrinterModel = "Bambu Lab A1 mini";
+    private const string DefaultProcess = "0.20mm Standard @BBL A1M";
+    private const string DefaultFilament = "Bambu PLA Basic @BBL A1M";
+    private const double NozzleMm = 0.4;
+
+    private static readonly double[] PriorArt = { 0.0767, 0.1129, 0.9244, 0.5558 };
+    private static readonly double[] PriorNameBar = { 0.0667, 0.0357, 0.9333, 0.0990 };
+    private static readonly double[] PriorNameTxt = { 0.0854, 0.0429, 0.6000, 0.0942 };
+    private static readonly double[] PriorTypeBar = { 0.0667, 0.5600, 0.9333, 0.6280 };
+    private static readonly double[] PriorTypeTxt = { 0.0854, 0.5685, 0.8300, 0.6200 };
+    private static readonly double[] PriorBox = { 0.0680, 0.6250, 0.9320, 0.9150 };
+    private static readonly double[] PriorPtBox = { 0.7573, 0.8848, 0.9293, 0.9477 };
+
+    private sealed record SizePreset(string Name, double? W, double? H);
+    private static readonly SizePreset[] SizePresets =
+    {
+        new("Standard MTG 63 x 88 mm", 63.0, 88.0),
+        new("US poker 63.5 x 88.9 mm", 63.5, 88.9),
+        new("Mini 75%", 63.0 * 0.75, 88.0 * 0.75),
+        new("Half 50%", 63.0 * 0.5, 88.0 * 0.5),
+        new("Large 125%", 63.0 * 1.25, 88.0 * 1.25),
+        new("Large 150%", 63.0 * 1.5, 88.0 * 1.5),
+        new("Double 200%", 63.0 * 2.0, 88.0 * 2.0),
+        new(CustomSizeName, null, null),
+    };
+    private static readonly string[] DetailChoices = { "0.15", "0.2", "0.25", "0.3", "0.4", "0.5" };
+    private static readonly string[] FrameLabels = { "W", "U", "B", "R", "G", "Multicolor", "Artifact", "Land", "Colorless" };
+
+    private sealed record EmbedMode(string Key, string Label);
+    private static readonly EmbedMode[] EmbedModes =
+    {
+        new("infill", "Colors + 100% infill (safest)"),
+        new("essentials", "Colors + infill + A1 mini 0.4 names"),
+        new("colors", "Colors only (original behaviour)"),
+    };
+
+    private static readonly Dictionary<string, int[]> FrameBase = new()
+    {
+        ["W"] = new[] { 238, 231, 200 }, ["U"] = new[] { 108, 165, 205 }, ["B"] = new[] { 95, 90, 100 },
+        ["R"] = new[] { 208, 106, 66 }, ["G"] = new[] { 110, 150, 96 },
+        ["gold"] = new[] { 200, 172, 92 }, ["artifact"] = new[] { 170, 178, 184 },
+        ["land"] = new[] { 166, 132, 96 }, ["colorless"] = new[] { 192, 192, 192 },
+    };
+
+    // =====================================================================================
+    // Page state
+    // =====================================================================================
+    private bool showDescription;
+    private bool hasFront, hasBack, busy, dirty = true, statusIsError;
+    private string frontFile = "", backFile = "";
+    private string status = "", warning = "";
+    private string infoSize = "", infoThickness = "", infoGrid = "";
+
+    private int nColors = 4;
+    private string sizePreset = SizePresets[0].Name;
+    private string customWidth = "63";
+    private string frontMm = "0.8", backMm = "0.8", coreMm = "0.0", coreColor = "Darkest";
+    private string layerH = "0.2", resMm = "0.25";
+    private int smoothing = 1, textBoost = 2, backBlank = 0;
+    private string textType = "Dark on light", backStyle = "MTG-style";
+    private bool balanceBack = true;
+    private string embedMode = "infill";
+
+    private string layoutMode = "none";          // none | relayout | frame
+    private string cardName = "", cardType = "", cardText = "", cardPt = "";
+    private int artScalePct = 70;
+    private string artFit = "scale";
+    private bool artAuto = true, dropReminder = true, redrawTitles = true;
+    private string frameColor = "Colorless", manaCost = "";
+
+    private Result? res;
+    private byte[][]? palette;
+    private byte[]?[] overrides = new byte[4][];      // user-picked filament colors, by index
+
+    private sealed class ParamError : Exception { public ParamError(string m) : base(m) { } }
+
+    private sealed class Params
+    {
+        public int NColors; public double Width, Height, FrontMm, BackMm, CoreMm, LayerH, ResMm;
+        public string CoreColor = "Darkest", BackStyle = "MTG-style", TextType = "Dark on light", EmbedMode = "infill";
+        public int BackBlank, TextBoost, Smoothing, InfillPct = 100;
+        public bool BalanceBack, Relayout, BuildFrame, ArtAuto, DropReminder, RedrawTitles;
+        public string CardName = "", CardType = "", CardText = "", CardPt = "", ArtFit = "scale", FrameColors = "", ManaCost = "";
+        public double ArtScale;
+    }
+
+    private sealed class Result
+    {
+        public sbyte[] Front = Array.Empty<sbyte>(), Back = Array.Empty<sbyte>();
+        public bool[] Mask = Array.Empty<bool>();
+        public byte[][] Palette = Array.Empty<byte[]>();
+        public int Nx, Ny;
+        public string Note = "";
+        public bool BackIsImage;
+    }
+
+    private sealed class FitRes { public bool Fits { get; set; } public double Em { get; set; } public double H { get; set; } }
+    private sealed class DrawRes { public double Em { get; set; } public bool Fits { get; set; } }
+    private sealed class CardInfo { public string Name { get; set; } = ""; public string Type { get; set; } = ""; public string Text { get; set; } = ""; public string Pt { get; set; } = ""; }
+
+    private const string JsSource = @"
+    (function () {
+        const PXMM = 16;
+        const src = {};   // key -> { canvas }
+        const FONT = 'Arial, Liberation Sans, DejaVu Sans, sans-serif';
+        const font = px => 'bold ' + px + 'px ' + FONT;
+        const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+        const rgbStr = c => 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')';
+        const luma = c => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
+        const inkFor = bg => luma(bg) >= 128 ? [0, 0, 0] : [255, 255, 255];
+        const mctx = mk(1, 1).getContext('2d');
+        const measure = (t, px) => { mctx.font = font(px); return mctx.measureText(t).width; };
+
+        // ---- text layout (port of _tokens/_wrap/_block_height/fit_block) ----
+        function tokens(par) {
+            const out = []; let last = 0; const re = /\{[^}]+\}|[^\s{]+/g; let m;
+            while ((m = re.exec(par)) !== null) { out.push([m[0], m.index > last]); last = m.index + m[0].length; }
+            return out;
+        }
+        function wrap(paras, em, maxW) {
+            const space = measure(' ', em); const lines = [];
+            paras.forEach((par, pi) => {
+                let cur = [], x = 0;
+                for (const [text, sp] of tokens(par)) {
+                    const sym = text.startsWith('{') && text.endsWith('}');
+                    const w = sym ? em : measure(text, em);
+                    let gap = (cur.length && sp) ? space : 0;
+                    if (cur.length && sp && x + gap + w > maxW) { lines.push([pi, cur]); cur = []; x = 0; gap = 0; }
+                    cur.push([sym ? 's' : 'w', text, x + gap, w]);
+                    x += gap + w;
+                }
+                if (cur.length) lines.push([pi, cur]);
+            });
+            return lines;
+        }
+        function blockH(lines, em) {
+            if (!lines.length) return 0;
+            const paras = new Set(lines.map(l => l[0])).size;
+            return lines.length * em * 1.22 + (paras - 1) * em * 0.4;
+        }
+        function fitBlock(text, wPx, hPx, maxMm, minMm, drop) {
+            let paras = text.split('\n').map(s => s.trim()).filter(s => s.length);
+            if (drop) paras = paras.map(l => l.replace(/\s*\([^)]*\)/g, '').trim()).filter(s => s.length);
+            let em = Math.round(maxMm * PXMM); const lo = Math.round(minMm * PXMM);
+            for (;;) {
+                const lines = wrap(paras, em, wPx); const h = blockH(lines, em);
+                if (h <= hPx) return { lines, em, h, fits: true };
+                if (em <= lo) return { lines, em, h, fits: false };
+                em -= 1;
+            }
+        }
+
+        // ---- drawing ----
+        function drawPip(ctx, cx, cy, r, inner, ink, bg) {
+            ctx.fillStyle = rgbStr(ink); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+            const sz = Math.max(6, Math.floor(r * 2 * (inner.length <= 1 ? 0.62 : 0.44)));
+            ctx.font = font(sz); ctx.fillStyle = rgbStr(bg); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(inner, cx, cy);
+        }
+        function drawBlock(ctx, lines, em, x0, y0, w, h, ink, bg) {
+            const lineH = em * 1.22;
+            let y = y0 + Math.max(0, (h - blockH(lines, em)) / 2);
+            let prev = null;
+            ctx.font = font(em); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            for (const [pi, items] of lines) {
+                if (prev !== null && pi !== prev) y += em * 0.4;
+                prev = pi;
+                const cy = y + lineH / 2;
+                for (const [kind, text, x, wd] of items) {
+                    if (kind === 'w') { ctx.font = font(em); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = rgbStr(ink); ctx.fillText(text, x0 + x, cy); }
+                    else drawPip(ctx, x0 + x + wd / 2, cy, em * 0.47, text.slice(1, -1), ink, bg);
+                }
+                y += lineH;
+            }
+        }
+        function drawLine(ctx, text, rect, maxMm, ink) {
+            const [x0, y0, x1, y1] = rect;
+            let em = Math.round(maxMm * PXMM);
+            while (em > 8 && measure(text, em) > (x1 - x0)) em--;
+            ctx.font = font(em); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = rgbStr(ink);
+            ctx.fillText(text, x0, (y0 + y1) / 2);
+        }
+        function drawManaRun(ctx, cost, rect, ink, bg) {
+            const [x0, y0, x1, y1] = rect;
+            const toks = (cost.toUpperCase().match(/\{[^}]+\}|[0-9]+|[WUBRGCX]/g) || []);
+            if (!toks.length) return x1;
+            const r = (y1 - y0) * 0.36, d = r * 2, gap = r * 0.3;
+            let x = x1 - r - Math.floor(0.5 * PXMM); const cy = (y0 + y1) / 2;
+            for (let i = toks.length - 1; i >= 0; i--) {
+                const t = toks[i]; const inner = t.startsWith('{') ? t.slice(1, -1) : t;
+                drawPip(ctx, x, cy, r, inner, ink, bg); x -= d + gap;
+            }
+            return x + d + gap - r - Math.floor(0.4 * PXMM);
+        }
+        function rectOutline(ctx, r, fill, dark, ob) {
+            const [x0, y0, x1, y1] = r;
+            if (fill) { ctx.fillStyle = rgbStr(fill); ctx.fillRect(x0, y0, x1 - x0, y1 - y0); }
+            ctx.fillStyle = rgbStr(dark);
+            ctx.fillRect(x0, y0, x1 - x0, ob); ctx.fillRect(x0, y1 - ob, x1 - x0, ob);
+            ctx.fillRect(x0, y0, ob, y1 - y0); ctx.fillRect(x1 - ob, y0, ob, y1 - y0);
+        }
+        function roundRect(ctx, x0, y0, x1, y1, r) {
+            ctx.beginPath(); ctx.moveTo(x0 + r, y0);
+            ctx.arcTo(x1, y0, x1, y1, r); ctx.arcTo(x1, y1, x0, y1, r);
+            ctx.arcTo(x0, y1, x0, y0, r); ctx.arcTo(x0, y0, x1, y0, r); ctx.closePath();
+        }
+
+        window.mtg = {
+            // decode an uploaded file (any browser-supported image), composite onto black, keep it under `key`
+            async loadImage(key, ref) {
+                const buf = await ref.arrayBuffer();
+                const blob = new Blob([buf]);
+                let bmp;
+                try { bmp = await createImageBitmap(blob); }
+                catch (e) {
+                    const url = URL.createObjectURL(blob);
+                    const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('This browser could not decode that image.')); i.src = url; });
+                    bmp = { width: im.naturalWidth, height: im.naturalHeight, _img: im };
+                }
+                const c = mk(bmp.width, bmp.height); const ctx = c.getContext('2d');
+                ctx.fillStyle = '#000'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(bmp._img || bmp, 0, 0);
+                src[key] = { canvas: c };
+                return [bmp.width, bmp.height];
+            },
+            // store raw RGB bytes from C# as a source image
+            async setSource(key, ref, w, h) {
+                const buf = new Uint8Array(await ref.arrayBuffer());
+                const c = mk(w, h); const ctx = c.getContext('2d'); const id = ctx.createImageData(w, h);
+                for (let i = 0, n = w * h; i < n; i++) {
+                    id.data[i * 4] = buf[i * 3]; id.data[i * 4 + 1] = buf[i * 3 + 1]; id.data[i * 4 + 2] = buf[i * 3 + 2]; id.data[i * 4 + 3] = 255;
+                }
+                ctx.putImageData(id, 0, 0); src[key] = { canvas: c };
+            },
+            // resize a source to w x h and hand back packed RGB bytes (halves step by step for clean downscaling)
+            getRgb(key, w, h) {
+                const s = src[key]; if (!s) throw new Error('image not loaded: ' + key);
+                let cur = s.canvas;
+                while (cur.width >= 2 * w && cur.height >= 2 * h) {
+                    const nw = Math.max(w, Math.floor(cur.width / 2)), nh = Math.max(h, Math.floor(cur.height / 2));
+                    const t = mk(nw, nh); const tc = t.getContext('2d');
+                    tc.imageSmoothingEnabled = true; tc.imageSmoothingQuality = 'high'; tc.drawImage(cur, 0, 0, nw, nh); cur = t;
+                }
+                const out = mk(w, h); const oc = out.getContext('2d');
+                oc.fillStyle = '#000'; oc.fillRect(0, 0, w, h);
+                oc.imageSmoothingEnabled = true; oc.imageSmoothingQuality = 'high'; oc.drawImage(cur, 0, 0, w, h);
+                const d = oc.getImageData(0, 0, w, h).data; const rgb = new Uint8Array(w * h * 3);
+                for (let i = 0, n = w * h; i < n; i++) { rgb[i * 3] = d[i * 4]; rgb[i * 3 + 1] = d[i * 4 + 1]; rgb[i * 3 + 2] = d[i * 4 + 2]; }
+                let bin = '';
+                for (let i = 0; i < rgb.length; i += 0x8000) bin += String.fromCharCode.apply(null, rgb.subarray(i, i + 0x8000));
+                return btoa(bin);
+            },
+            async download(name, ref) {
+                const buf = await ref.arrayBuffer();
+                const url = URL.createObjectURL(new Blob([buf], { type: 'model/3mf' }));
+                const a = document.createElement('a'); a.href = url; a.download = name;
+                document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 10000);
+            },
+            async scryfall(name) {
+                const r = await fetch('https://api.scryfall.com/cards/named?fuzzy=' + encodeURIComponent(name), { headers: { Accept: 'application/json' } });
+                const d = await r.json();
+                if (!r.ok) throw new Error(d.details || ('HTTP ' + r.status));
+                const face = (d.card_faces && d.card_faces[0]) || d;
+                const pw = face.power != null ? face.power : d.power, tg = face.toughness != null ? face.toughness : d.toughness;
+                return {
+                    name: face.name || d.name || '', type: face.type_line || d.type_line || '',
+                    text: face.oracle_text || d.oracle_text || '', pt: (pw != null && tg != null) ? (pw + '/' + tg) : ''
+                };
+            },
+            fit(text, w, h, maxMm, minMm, drop) {
+                const r = fitBlock(text, w, h, maxMm, minMm, drop);
+                return { fits: r.fits, em: r.em, h: r.h };
+            },
+            // draw name/type lines and the rules-text block on the work source
+            drawText(key, ops) {
+                const ctx = src[key].canvas.getContext('2d'); let result = null;
+                for (const op of ops) {
+                    if (op.kind === 'line') drawLine(ctx, op.text, op.rect, op.maxMm, op.ink);
+                    else if (op.kind === 'block') {
+                        const [x, y, w, h] = op.rect;
+                        const r = fitBlock(op.text, w, h, op.maxMm, op.minMm, op.drop);
+                        drawBlock(ctx, r.lines, r.em, x, y, w, h, op.ink, op.bg);
+                        result = { em: r.em, fits: r.fits };
+                    }
+                }
+                return result;
+            },
+            // port of build_card_frame: whole card frame around plain art
+            buildFrame(srcKey, dstKey, s) {
+                const CW = 1008, CH = 1408;
+                const c = mk(CW, CH), ctx = c.getContext('2d');
+                const base = s.baseColor, dark = [10, 10, 10];
+                const boxBg = base.map(v => Math.floor(v + (245 - v) * 0.55));
+                ctx.fillStyle = rgbStr(dark); ctx.fillRect(0, 0, CW, CH);
+                const bt = Math.floor(0.022 * Math.min(CW, CH));
+                ctx.fillStyle = rgbStr(base); roundRect(ctx, bt, bt, CW - bt, CH - bt, Math.floor(0.03 * Math.min(CW, CH))); ctx.fill();
+
+                // art, cropped to cover its box
+                const a = s.art, aw = a[2] - a[0], ah = a[3] - a[1], sc = src[srcKey].canvas;
+                const k = Math.max(aw / sc.width, ah / sc.height), dw = sc.width * k, dh = sc.height * k;
+                ctx.save(); ctx.beginPath(); ctx.rect(a[0], a[1], aw, ah); ctx.clip();
+                ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(sc, a[0] + (aw - dw) / 2, a[1] + (ah - dh) / 2, dw, dh); ctx.restore();
+
+                const ob = Math.floor(0.35 * PXMM), hasPt = s.cardPt.length > 0;
+                rectOutline(ctx, s.art, null, dark, ob);
+                rectOutline(ctx, s.name, base, dark, ob);
+                rectOutline(ctx, s.type, base, dark, ob);
+                rectOutline(ctx, s.box, boxBg, dark, ob);
+                if (hasPt) rectOutline(ctx, s.pt, boxBg, dark, ob);
+
+                const ix = Math.floor(2.2 * PXMM), iy = Math.floor(1.8 * PXMM), pad = Math.floor(0.9 * PXMM);
+                const nameInk = inkFor(base), boxInk = inkFor(boxBg);
+                const pipLeft = s.mana.length ? drawManaRun(ctx, s.mana, s.name, nameInk, base) : s.name[2] - pad;
+                if (s.cardName.length) drawLine(ctx, s.cardName, [s.name[0] + pad, s.name[1], pipLeft - pad, s.name[3]], 3.8, nameInk);
+                if (s.cardType.length) drawLine(ctx, s.cardType, [s.type[0] + pad, s.type[1], s.type[2] - pad, s.type[3]], 3.2, nameInk);
+                let result = { em: 0, fits: true };
+                if (s.cardText.length) {
+                    const bottom = hasPt ? Math.min(s.box[3], Math.floor(s.ptTop * CH)) : s.box[3];
+                    const areaW = (s.box[2] - s.box[0]) - 2 * ix, areaH = bottom - s.box[1] - 2 * iy;
+                    const r = fitBlock(s.cardText, areaW, areaH, s.textMaxMm, s.textMinMm, s.drop);
+                    drawBlock(ctx, r.lines, r.em, s.box[0] + ix, s.box[1] + iy, areaW, areaH, boxInk, boxBg);
+                    result = { em: r.em, fits: r.fits };
+                }
+                if (hasPt) drawLine(ctx, s.cardPt, s.pt, 3.6, boxInk);
+                src[dstKey] = { canvas: c };
+                return result;
+            }
+        };
+    })();
+";
+
+    private bool jsReady;
+
+    private async Task EnsureJs()
+    {
+        if (jsReady) return;
+        await JS.InvokeVoidAsync("eval", JsSource);
+        jsReady = true;
+    }
+
+    private void ToggleDescription() => showDescription = !showDescription;
+
+    // ---- change handlers: store the value, then re-run the pipeline ----
+    private Func<ChangeEventArgs, Task> Chg(Action<string> set) => e =>
+    {
+        try { set(e.Value?.ToString() ?? ""); dirty = true; } catch (FormatException) { }
+        return Task.CompletedTask;
+    };
+
+    private Func<ChangeEventArgs, Task> ChgBool(Action<bool> set) => e =>
+    {
+        set(e.Value is bool b && b);
+        dirty = true;
+        return Task.CompletedTask;
+    };
+
+    private Func<ChangeEventArgs, Task> ChgPalette(Action<string> set) => async e =>
+    {
+        try { set(e.Value?.ToString() ?? ""); dirty = true; } catch (FormatException) { return; }
+        await UpdatePalette();
+    };
+
+    private Func<ChangeEventArgs, Task> ChgBoolPalette(Action<bool> set) => async e =>
+    {
+        set(e.Value is bool b && b);
+        dirty = true;
+        await UpdatePalette();
+    };
+
+    private void ApplyOverrides()
+    {
+        if (palette == null) return;
+        for (var i = 0; i < palette.Length && i < overrides.Length; i++)
+            if (overrides[i] != null) palette[i] = (byte[])overrides[i]!.Clone();
+    }
+
+    /// Quick palette estimate from a small copy of the image(s), so the swatches show right away.
+    private async Task UpdatePalette()
+    {
+        if (!hasFront) return;
+        try
+        {
+            const int pw = 126, ph = 176;
+            var pts = MaskedPixels(await GetRgb("front", pw, ph), RoundedMask(pw, ph, 3.0 * pw / BaseW));
+            if (hasBack && balanceBack)
+            {
+                var mask = RoundedMask(pw, ph, 3.0 * pw / BaseW);
+                var bp = MaskedPixels(await GetRgb("back", pw, ph), mask);
+                var n = Math.Min(pts.Length, bp.Length) / 3;
+                var rng = new Random(2);
+                pts = Sample(pts, n, rng).Concat(Sample(bp, n, rng)).ToArray();
+            }
+            var (_, pal) = PaletteFromPixels(pts, nColors);
+            palette = pal;
+            ApplyOverrides();
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Could not read the palette: {ex.GetType().Name}: {ex.Message}", true);
+        }
+    }
+
+    private static string Hex(byte[] c) => $"#{c[0]:X2}{c[1]:X2}{c[2]:X2}";
+
+    private async Task SetPaletteColor(int i, string? hex)
+    {
+        if (palette == null || hex == null || hex.Length != 7 || i >= palette.Length) return;
+        palette[i] = new[] { Convert.ToByte(hex.Substring(1, 2), 16), Convert.ToByte(hex.Substring(3, 2), 16), Convert.ToByte(hex.Substring(5, 2), 16) };
+        if (i < overrides.Length) overrides[i] = (byte[])palette[i].Clone();
+        await Task.CompletedTask;
+    }
+
+    // =====================================================================================
+    // Loading images / Scryfall
+    // =====================================================================================
+    private async Task LoadFront(InputFileChangeEventArgs e)
+    {
+        if (!await LoadImage(e.File, "front")) return;
+        hasFront = true;
+        frontFile = e.File.Name;
+        var guess = System.Text.RegularExpressions.Regex.Replace(Path.GetFileNameWithoutExtension(e.File.Name), @"[_\-]+", " ").Trim();
+        if (string.IsNullOrWhiteSpace(cardName)
+            && System.Text.RegularExpressions.Regex.IsMatch(guess, "[A-Za-z]{3}")
+            && System.Text.RegularExpressions.Regex.Replace(guess, @"\D", "").Length < 5)
+            cardName = guess;                      // "Lightning Bolt.jpg" pre-fills the name
+        dirty = true;
+        overrides = new byte[4][];
+        await UpdatePalette();
+    }
+
+    private async Task LoadBack(InputFileChangeEventArgs e)
+    {
+        if (!await LoadImage(e.File, "back")) return;
+        hasBack = true;
+        backFile = e.File.Name;
+        dirty = true;
+        await UpdatePalette();
+    }
+
+    private async Task ClearBack()
+    {
+        hasBack = false;
+        backFile = "";
+        dirty = true;
+        await UpdatePalette();
+    }
+
+    private async Task<bool> LoadImage(IBrowserFile file, string key)
+    {
+        try
+        {
+            SetStatus("Loading image...");
+            await EnsureJs();
+            var ms = new MemoryStream();
+            await using (var s = file.OpenReadStream(40_000_000)) await s.CopyToAsync(ms);
+            ms.Position = 0;
+            await JS.InvokeAsync<int[]>("mtg.loadImage", key, new DotNetStreamReference(ms));
+            SetStatus("");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            SetStatus("Could not read that image: " + ex.Message, true);
+            return false;
+        }
+    }
+
+    private async Task FetchScryfall()
+    {
+        var nm = cardName.Trim();
+        if (nm.Length == 0) { SetStatus("Type the card name first.", true); return; }
+        try
+        {
+            SetStatus("Fetching from Scryfall...");
+            StateHasChanged();
+            var d = await JS.InvokeAsync<CardInfo>("mtg.scryfall", nm);
+            cardName = d.Name; cardType = d.Type; cardText = d.Text; cardPt = d.Pt;
+            SetStatus("");
+            dirty = true;
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Could not fetch '{nm}': {ex.Message}", true);
+        }
+    }
+
+    private void SetStatus(string s, bool error = false) { status = s; statusIsError = error; }
+
+    // =====================================================================================
+    // Parameters
+    // =====================================================================================
+    private static double D(string s) => double.Parse(s.Trim(), CultureInfo.InvariantCulture);
+
+    private Params ReadParams()
+    {
+        double w, h;
+        var preset = SizePresets.First(s => s.Name == sizePreset);
+        if (preset.W is null) { w = D(customWidth); h = w * BaseH / BaseW; }
+        else { w = preset.W.Value; h = preset.H!.Value; }
+
+        var p = new Params
+        {
+            NColors = nColors, Width = w, Height = h,
+            FrontMm = D(frontMm), BackMm = D(backMm), CoreMm = D(coreMm), CoreColor = coreColor,
+            LayerH = D(layerH), ResMm = D(resMm),
+            BackStyle = backStyle, Smoothing = smoothing, BackBlank = backBlank,
+            TextBoost = textBoost, TextType = textType, BalanceBack = balanceBack, EmbedMode = embedMode,
+            Relayout = layoutMode == "relayout", BuildFrame = layoutMode == "frame",
+            CardName = cardName, CardType = cardType, CardText = cardText.Replace("\r", ""), CardPt = cardPt,
+            ArtScale = artScalePct / 100.0, ArtAuto = artAuto, ArtFit = artFit,
+            DropReminder = dropReminder, RedrawTitles = redrawTitles,
+            FrameColors = frameColor, ManaCost = manaCost,
+        };
+        if (p.LayerH < LayerMin - 1e-9 || p.LayerH > LayerMax + 1e-9)
+            throw new ParamError($"Layer height must be {LayerMin}-{LayerMax} mm for a 0.4 mm nozzle.");
+        if (p.Width < 10 || p.Width > 400) throw new ParamError("Card width must be between 10 and 400 mm.");
+        if (p.ResMm <= 0 || p.FrontMm <= 0 || p.BackMm <= 0 || p.CoreMm < 0) throw new ParamError("Check the numeric fields.");
+        if ((p.Width / p.ResMm) * (p.Height / p.ResMm) > 4_000_000) throw new ParamError("That size and detail make a grid that is too large. Raise the mm per pixel.");
+        return p;
+    }
+
+    // =====================================================================================
+    // JS bridge helpers
+    // =====================================================================================
+    private async Task<byte[]> GetRgb(string key, int w, int h)
+    {
+        var b64 = await JS.InvokeAsync<string>("mtg.getRgb", key, w, h);
+        var buf = Convert.FromBase64String(b64);
+        if (buf.Length != w * h * 3) throw new InvalidOperationException($"Image buffer size mismatch ({buf.Length} vs {w * h * 3}).");
+        return buf;
+    }
+
+    private async Task SetSource(string key, byte[] rgb, int w, int h)
+        => await JS.InvokeVoidAsync("mtg.setSource", key, new DotNetStreamReference(new MemoryStream(rgb)), w, h);
+
+    // =====================================================================================
+    // Pipeline
+    // =====================================================================================
+    private async Task<Result> ProcessAsync(Params p)
+    {
+        var layoutKey = "front";
+        var note = "";
+        if (p.BuildFrame)
+        {
+            note = await BuildFrameAsync(p);
+            layoutKey = "work";
+        }
+        else if (p.Relayout)
+        {
+            var (applied, n) = await RelayoutAsync(p);
+            note = n;
+            if (applied) layoutKey = "work";
+        }
+
+        var nx = Math.Max(8, (int)Math.Round(p.Width / p.ResMm));
+        var ny = Math.Max(8, (int)Math.Round(p.Height / p.ResMm));
+        var rPx = BaseR * (p.Width / BaseW) / p.ResMm;
+        var mask = RoundedMask(nx, ny, rPx);
+        var k = p.NColors;
+
+        var frontRgb = await GetRgb(layoutKey, nx, ny);
+        if (p.Smoothing >= 2) frontRgb = Median3(frontRgb, nx, ny);
+
+        byte[]? backRgb = null;
+        if (hasBack)
+        {
+            backRgb = await GetRgb("back", nx, ny);
+            if (p.Smoothing >= 2) backRgb = Median3(backRgb, nx, ny);
+            backRgb = MirrorRgb(backRgb, nx, ny);       // seen from underneath
+        }
+
+        var pts = MaskedPixels(frontRgb, mask);
+        if (backRgb != null && p.BalanceBack)
+        {
+            var bp = MaskedPixels(backRgb, mask);
+            var n = Math.Min(pts.Length, bp.Length) / 3;
+            var rng = new Random(2);
+            pts = Sample(pts, n, rng).Concat(Sample(bp, n, rng)).ToArray();
+        }
+        var (centers, pal) = PaletteFromPixels(pts, k);
+
+        var front = Majority(ApplyMask(AssignLabels(frontRgb, centers), mask), nx, ny, k, p.Smoothing);
+        if (p.TextBoost > 0 && k > 1)
+        {
+            var (tl, zone) = await TextOverlayAsync(layoutKey, nx, ny, mask, pal, p);
+            for (var i = 0; i < front.Length; i++) if (zone[i]) front[i] = tl[i];
+        }
+        front = FixCheckerboards(front, nx, ny);
+
+        sbyte[] back;
+        if (backRgb != null)
+        {
+            back = Majority(ApplyMask(AssignLabels(backRgb, centers), mask), nx, ny, k, p.Smoothing);
+            back = FixCheckerboards(back, nx, ny);
+        }
+        else back = FixCheckerboards(MakeBack(nx, ny, mask, pal, p), nx, ny);
+
+        return new Result { Front = front, Back = back, Mask = mask, Palette = pal, Nx = nx, Ny = ny, Note = note, BackIsImage = backRgb != null };
+    }
+
+    // ---------------------------------------------------------------- pixel helpers
+    private static bool[] RoundedMask(int nx, int ny, double r)
+    {
+        r = Math.Min(r, Math.Min(nx, ny) / 2.0);
+        var m = new bool[nx * ny];
+        for (var y = 0; y < ny; y++)
+            for (var x = 0; x < nx; x++)
+            {
+                var dx = Math.Max(Math.Max(r - x, x - (nx - 1 - r)), 0);
+                var dy = Math.Max(Math.Max(r - y, y - (ny - 1 - r)), 0);
+                m[y * nx + x] = dx * dx + dy * dy <= r * r;
+            }
+        return m;
+    }
+
+    private static byte[] MaskedPixels(byte[] rgb, bool[] mask)
+    {
+        var list = new List<byte>(rgb.Length);
+        for (var i = 0; i < mask.Length; i++)
+            if (mask[i]) { list.Add(rgb[i * 3]); list.Add(rgb[i * 3 + 1]); list.Add(rgb[i * 3 + 2]); }
+        return list.ToArray();
+    }
+
+    private static byte[] Sample(byte[] pts, int count, Random rng)
+    {
+        var n = pts.Length / 3;
+        if (count >= n) return pts;
+        var idx = Enumerable.Range(0, n).ToArray();
+        for (var i = 0; i < count; i++)
+        {
+            var j = i + rng.Next(n - i);
+            (idx[i], idx[j]) = (idx[j], idx[i]);
+        }
+        var o = new byte[count * 3];
+        for (var i = 0; i < count; i++) { o[i * 3] = pts[idx[i] * 3]; o[i * 3 + 1] = pts[idx[i] * 3 + 1]; o[i * 3 + 2] = pts[idx[i] * 3 + 2]; }
+        return o;
+    }
+
+    private static byte[] MirrorRgb(byte[] src, int w, int h)
+    {
+        var o = new byte[src.Length];
+        for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+                Buffer.BlockCopy(src, (y * w + x) * 3, o, (y * w + (w - 1 - x)) * 3, 3);
+        return o;
+    }
+
+    private static byte[] Median3(byte[] src, int w, int h)
+    {
+        var o = new byte[src.Length];
+        Span<byte> win = stackalloc byte[9];
+        for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+                for (var c = 0; c < 3; c++)
+                {
+                    var n = 0;
+                    for (var dy = -1; dy <= 1; dy++)
+                        for (var dx = -1; dx <= 1; dx++)
+                        {
+                            var yy = Math.Clamp(y + dy, 0, h - 1);
+                            var xx = Math.Clamp(x + dx, 0, w - 1);
+                            win[n++] = src[(yy * w + xx) * 3 + c];
+                        }
+                    win.Sort();
+                    o[(y * w + x) * 3 + c] = win[4];
+                }
+        return o;
+    }
+
+    // ---------------------------------------------------------------- color science
+    private static void Rgb2Lab(byte r8, byte g8, byte b8, out float L, out float A, out float B)
+    {
+        static float Lin(float c) => c > 0.04045f ? MathF.Pow((c + 0.055f) / 1.055f, 2.4f) : c / 12.92f;
+        float r = Lin(r8 / 255f), g = Lin(g8 / 255f), b = Lin(b8 / 255f);
+        var x = (0.4124564f * r + 0.3575761f * g + 0.1804375f * b) / 0.95047f;
+        var y = 0.2126729f * r + 0.7151522f * g + 0.0721750f * b;
+        var z = (0.0193339f * r + 0.1191920f * g + 0.9503041f * b) / 1.08883f;
+        static float F(float t) => t > 0.008856f ? MathF.Cbrt(t) : 7.787f * t + 16f / 116f;
+        float fx = F(x), fy = F(y), fz = F(z);
+        L = 116 * fy - 16; A = 500 * (fx - fy); B = 200 * (fy - fz);
+    }
+
+    private static float[] ToLab(byte[] rgb)
+    {
+        var n = rgb.Length / 3;
+        var lab = new float[n * 3];
+        for (var i = 0; i < n; i++) Rgb2Lab(rgb[i * 3], rgb[i * 3 + 1], rgb[i * 3 + 2], out lab[i * 3], out lab[i * 3 + 1], out lab[i * 3 + 2]);
+        return lab;
+    }
+
+    private static int Nearest(float[] lab, int i, float[][] centers)
+    {
+        var best = 0; var bd = float.MaxValue;
+        for (var c = 0; c < centers.Length; c++)
+        {
+            float dl = lab[i * 3] - centers[c][0], da = lab[i * 3 + 1] - centers[c][1], db = lab[i * 3 + 2] - centers[c][2];
+            var d = dl * dl + da * da + db * db;
+            if (d < bd) { bd = d; best = c; }
+        }
+        return best;
+    }
+
+    /// k-means in Lab seeded evenly across lightness. Returns (lab centers, rgb palette) sorted dark -> light.
+    private static (float[][] centers, byte[][] palette) PaletteFromPixels(byte[] pts, int k)
+    {
+        var rng = new Random(1);
+        if (pts.Length / 3 > 40000) pts = Sample(pts, 40000, rng);
+        var n = pts.Length / 3;
+        var lab = ToLab(pts);
+        var centers = new float[k][];
+
+        if (k == 1)
+        {
+            var m = new float[3];
+            for (var i = 0; i < n; i++) for (var c = 0; c < 3; c++) m[c] += lab[i * 3 + c] / n;
+            centers[0] = m;
+        }
+        else
+        {
+            var order = Enumerable.Range(0, n).OrderBy(i => lab[i * 3]).ToArray();
+            var nn = Math.Max(1, n / 30);
+            for (var qi = 0; qi < k; qi++)
+            {
+                var q = 0.02 + 0.96 * qi / (k - 1);
+                var start = Math.Max(0, Math.Min(n - nn, (int)(q * n) - nn / 2));
+                var m = new float[3];
+                for (var j = 0; j < nn; j++) for (var c = 0; c < 3; c++) m[c] += lab[order[start + j] * 3 + c] / nn;
+                centers[qi] = m;
+            }
+        }
+
+        var assign = new int[n];
+        for (var it = 0; it < 25; it++)
+        {
+            for (var i = 0; i < n; i++) assign[i] = Nearest(lab, i, centers);
+            for (var c = 0; c < k; c++)
+            {
+                var sum = new double[3]; var cnt = 0;
+                for (var i = 0; i < n; i++) if (assign[i] == c) { cnt++; for (var d = 0; d < 3; d++) sum[d] += lab[i * 3 + d]; }
+                if (cnt > 0) for (var d = 0; d < 3; d++) centers[c][d] = (float)(sum[d] / cnt);
+            }
+        }
+        for (var i = 0; i < n; i++) assign[i] = Nearest(lab, i, centers);
+
+        var all = new double[3];
+        for (var i = 0; i < n; i++) for (var d = 0; d < 3; d++) all[d] += pts[i * 3 + d] / (double)n;
+        var rgb = new double[k][];
+        for (var c = 0; c < k; c++)
+        {
+            var sum = new double[3]; var cnt = 0;
+            for (var i = 0; i < n; i++) if (assign[i] == c) { cnt++; for (var d = 0; d < 3; d++) sum[d] += pts[i * 3 + d]; }
+            rgb[c] = cnt > 0 ? sum.Select(v => v / cnt).ToArray() : (double[])all.Clone();
+        }
+        var o = Enumerable.Range(0, k).OrderBy(c => 0.299 * rgb[c][0] + 0.587 * rgb[c][1] + 0.114 * rgb[c][2]).ToArray();
+        var pal = o.Select(c => rgb[c].Select(v => (byte)Math.Clamp((int)Math.Round(v), 0, 255)).ToArray()).ToArray();
+        return (o.Select(c => centers[c]).ToArray(), pal);
+    }
+
+    private static sbyte[] AssignLabels(byte[] rgb, float[][] centers)
+    {
+        var lab = ToLab(rgb);
+        var n = rgb.Length / 3;
+        var o = new sbyte[n];
+        for (var i = 0; i < n; i++) o[i] = (sbyte)Nearest(lab, i, centers);
+        return o;
+    }
+
+    private static sbyte[] ApplyMask(sbyte[] L, bool[] mask)
+    {
+        for (var i = 0; i < L.Length; i++) if (!mask[i]) L[i] = -1;
+        return L;
+    }
+
+    // ---------------------------------------------------------------- label cleaning
+    /// Replace pixels by the majority label of their 3x3 neighbourhood (removes confetti).
+    private static sbyte[] Majority(sbyte[] L, int nx, int ny, int k, int passes)
+    {
+        Span<int> counts = stackalloc int[Math.Max(k, 1)];
+        for (var pass = 0; pass < passes; pass++)
+        {
+            var nl = (sbyte[])L.Clone();
+            for (var y = 0; y < ny; y++)
+                for (var x = 0; x < nx; x++)
+                {
+                    int cur = L[y * nx + x];
+                    if (cur < 0) continue;
+                    counts.Clear();
+                    for (var dy = -1; dy <= 1; dy++)
+                    {
+                        var yy = y + dy; if (yy < 0 || yy >= ny) continue;
+                        for (var dx = -1; dx <= 1; dx++)
+                        {
+                            var xx = x + dx; if (xx < 0 || xx >= nx) continue;
+                            int v = L[yy * nx + xx];
+                            if (v >= 0 && v < k) counts[v]++;
+                        }
+                    }
+                    var best = 0;
+                    for (var j = 1; j < k; j++) if (counts[j] > counts[best]) best = j;
+                    var bestc = counts[best];
+                    // only merge neighbouring tones, so thin dark-on-light text and outlines survive
+                    if (bestc >= 5 && best != cur && bestc > counts[cur] && Math.Abs(best - cur) <= 1) nl[y * nx + x] = (sbyte)best;
+                }
+            L = nl;
+        }
+        return L;
+    }
+
+    /// Remove spots where two same-color pixels touch only at a corner (non-manifold in the mesh).
+    private static sbyte[] FixCheckerboards(sbyte[] src, int nx, int ny, int rounds = 6)
+    {
+        var L = (sbyte[])src.Clone();
+        for (var round = 0; round < rounds; round++)
+        {
+            var d1 = new List<int>(); var d2 = new List<int>();
+            for (var y = 0; y < ny - 1; y++)
+                for (var x = 0; x < nx - 1; x++)
+                {
+                    int i = y * nx + x;
+                    int a = L[i], b = L[i + 1], c = L[i + nx], d = L[i + nx + 1];
+                    if (a < 0 || b < 0 || c < 0 || d < 0) continue;
+                    if (a == d && b != a && c != a) d1.Add(i);
+                    if (b == c && a != b && d != b) d2.Add(i);
+                }
+            if (d1.Count == 0 && d2.Count == 0) break;
+            var v1 = d1.Select(i => L[i]).ToArray();
+            for (var j = 0; j < d1.Count; j++) L[d1[j] + 1] = v1[j];             // b takes a's color
+            var v2 = d2.Select(i => L[i + 1]).ToArray();
+            for (var j = 0; j < d2.Count; j++) L[d2[j]] = v2[j];                 // a takes b's color
+        }
+        return L;
+    }
+
+    // ---------------------------------------------------------------- built-in back
+    private static sbyte[] MakeBack(int nx, int ny, bool[] mask, byte[][] pal, Params p)
+    {
+        var k = pal.Length;
+        var scale = p.Width / BaseW;
+        var pxmm = p.ResMm;
+        var L = new sbyte[nx * ny];
+
+        int NearestRgb(int r, int g, int b)
+        {
+            var best = 0; var bd = double.MaxValue;
+            for (var i = 0; i < k; i++)
+            {
+                double d = Math.Pow(pal[i][0] - r, 2) + Math.Pow(pal[i][1] - g, 2) + Math.Pow(pal[i][2] - b, 2);
+                if (d < bd) { bd = d; best = i; }
+            }
+            return best;
+        }
+
+        if (p.BackStyle is "Blank" or "Solid" || k == 1)
+        {
+            Array.Fill(L, (sbyte)Math.Min(Math.Max(p.BackBlank, 0), k - 1));
+        }
+        else
+        {
+            int border = 0, field = NearestRgb(115, 65, 35), oval = NearestRgb(205, 130, 55);
+            var bw = 3.5 * scale / pxmm;
+            var rad = Math.Max(1.0, BaseR * scale / pxmm - bw * 0.3);
+            double cx = nx / 2.0, cy = ny / 2.0, a = 0.36 * nx, b = 0.25 * ny;
+            var ring = 1.4 * scale / pxmm;
+            for (var y = 0; y < ny; y++)
+                for (var x = 0; x < nx; x++)
+                {
+                    var v = border;
+                    if (InRoundRect(x, y, bw, bw, nx - 1 - bw, ny - 1 - bw, rad)) v = field;
+                    var ex = (x - cx); var ey = (y - cy);
+                    if (ex * ex / (a * a) + ey * ey / (b * b) <= 1)
+                    {
+                        v = border;
+                        var a2 = a - ring; var b2 = b - ring;
+                        if (a2 > 0 && b2 > 0 && ex * ex / (a2 * a2) + ey * ey / (b2 * b2) <= 1) v = oval;
+                    }
+                    L[y * nx + x] = (sbyte)v;
+                }
+        }
+        return ApplyMask(L, mask);
+    }
+
+    private static bool InRoundRect(double x, double y, double x0, double y0, double x1, double y1, double rad)
+    {
+        if (x < x0 || x > x1 || y < y0 || y > y1) return false;
+        rad = Math.Max(0, Math.Min(rad, Math.Min(x1 - x0, y1 - y0) / 2));
+        var dx = Math.Max(Math.Max(x0 + rad - x, x - (x1 - rad)), 0);
+        var dy = Math.Max(Math.Max(y0 + rad - y, y - (y1 - rad)), 0);
+        return dx * dx + dy * dy <= rad * rad;
+    }
+
+    // ---------------------------------------------------------------- text overlay
+    private static int[] Filter(int[] a, int W, int H, int w, bool max)
+    {
+        var r = w / 2;
+        var tmp = new int[a.Length];
+        var o = new int[a.Length];
+        for (var y = 0; y < H; y++)
+            for (var x = 0; x < W; x++)
+            {
+                var v = a[y * W + x];
+                for (var d = Math.Max(0, x - r); d <= Math.Min(W - 1, x + r); d++) { var t = a[y * W + d]; if (max ? t > v : t < v) v = t; }
+                tmp[y * W + x] = v;
+            }
+        for (var y = 0; y < H; y++)
+            for (var x = 0; x < W; x++)
+            {
+                var v = tmp[y * W + x];
+                for (var d = Math.Max(0, y - r); d <= Math.Min(H - 1, y + r); d++) { var t = tmp[d * W + x]; if (max ? t > v : t < v) v = t; }
+                o[y * W + x] = v;
+            }
+        return o;
+    }
+
+    private static bool[] Grow(bool[] m, int nx, int ny, int radius)
+    {
+        var a = new int[m.Length];
+        for (var i = 0; i < m.Length; i++) a[i] = m[i] ? 1 : 0;
+        var g = Filter(a, nx, ny, 2 * radius + 1, true);
+        var o = new bool[m.Length];
+        for (var i = 0; i < o.Length; i++) o[i] = g[i] > 0;
+        return o;
+    }
+
+    /// Find thin text/lines at 3x resolution. Inside every text zone the result is strictly two-tone:
+    /// ink color on the local background color, so letters print clean.
+    private async Task<(sbyte[] labels, bool[] zone)> TextOverlayAsync(string key, int nx, int ny, bool[] mask, byte[][] pal, Params p)
+    {
+        const int S = TextSS;
+        int W = nx * S, H = ny * S, k = pal.Length;
+        var hi = await GetRgb(key, W, H);
+        var li = new int[W * H];
+        for (var i = 0; i < li.Length; i++) li[i] = (int)(0.299f * hi[i * 3] + 0.587f * hi[i * 3 + 1] + 0.114f * hi[i * 3 + 2]);
+        var w = (int)Math.Round(1.0 / (p.ResMm / S));
+        w += 1 - w % 2;
+        var plum = pal.Select(c => 0.299f * c[0] + 0.587f * c[1] + 0.114f * c[2]).ToArray();
+
+        float[] Blocks(Func<int, float> f)
+        {
+            var o = new float[nx * ny];
+            for (var y = 0; y < ny; y++)
+                for (var x = 0; x < nx; x++)
+                {
+                    float s = 0;
+                    for (var sy = 0; sy < S; sy++) for (var sx = 0; sx < S; sx++) s += f((y * S + sy) * W + x * S + sx);
+                    o[y * nx + x] = s / (S * S);
+                }
+            return o;
+        }
+
+        var thr = p.TextBoost switch { 1 => 0.35f, 2 => 0.15f, _ => 0.01f };
+        var zr = Math.Max(2, (int)Math.Round(0.7 / p.ResMm));
+        var outL = new sbyte[nx * ny]; Array.Fill(outL, (sbyte)-1);
+        var zoneAll = new bool[nx * ny];
+        var n = nx * ny;
+
+        if (p.TextType is "Dark on light" or "Both")
+        {
+            var closing = Filter(Filter(li, W, H, w, true), W, H, w, false);
+            var inkF = Blocks(i => closing[i] - li[i] > 45 ? 1f : 0f);
+            var lightF = Blocks(i => closing[i] > 150 ? 1f : 0f);
+            var ink = new bool[n];
+            for (var i = 0; i < n; i++) ink[i] = inkF[i] >= thr && lightF[i] > 0.5f;
+            if (p.TextBoost >= 3) ink = Grow(ink, nx, ny, 1);
+            var bgl = Blocks(i => closing[i]);
+            var zone = Grow(ink, nx, ny, zr);
+            for (var i = 0; i < n; i++)
+            {
+                zone[i] = zone[i] && bgl[i] > 150 && mask[i];
+                if (!zone[i]) continue;
+                var best = 1; var bd = float.MaxValue;                          // every tone except the darkest
+                for (var c = 1; c < k; c++) { var d = Math.Abs(plum[c] - bgl[i]); if (d < bd) { bd = d; best = c; } }
+                outL[i] = (sbyte)best;
+                if (ink[i]) outL[i] = 0;                                          // all letters = darkest color
+                zoneAll[i] = true;
+            }
+        }
+
+        if (p.TextType is "Light on dark" or "Both")
+        {
+            var opening = Filter(Filter(li, W, H, w, false), W, H, w, true);
+            var inkF = Blocks(i => li[i] - opening[i] > 45 ? 1f : 0f);
+            var darkF = Blocks(i => opening[i] < 110 ? 1f : 0f);
+            var ink = new bool[n];
+            for (var i = 0; i < n; i++) ink[i] = inkF[i] >= thr && darkF[i] > 0.5f;
+            if (p.TextBoost >= 3) ink = Grow(ink, nx, ny, 1);
+            var bgl = Blocks(i => opening[i]);
+            var zone = Grow(ink, nx, ny, zr);
+            var already = (bool[])zoneAll.Clone();
+            for (var i = 0; i < n; i++)
+            {
+                zone[i] = zone[i] && bgl[i] < 110 && mask[i] && !already[i];
+                if (!zone[i]) continue;
+                var best = 0; var bd = float.MaxValue;                          // every tone except the lightest
+                for (var c = 0; c < k - 1; c++) { var d = Math.Abs(plum[c] - bgl[i]); if (d < bd) { bd = d; best = c; } }
+                outL[i] = (sbyte)best;
+                if (ink[i]) outL[i] = (sbyte)(k - 1);                             // all letters = lightest color
+                zoneAll[i] = true;
+            }
+        }
+        return (outL, zoneAll);
+    }
+
+    // =====================================================================================
+    // Print-friendly layout (art box detection + composing; text itself is drawn in JS)
+    // =====================================================================================
+    private static int[] Rect(double[] f) => new[]
+    {
+        (int)Math.Round(f[0] * CW), (int)Math.Round(f[1] * CH), (int)Math.Round(f[2] * CW), (int)Math.Round(f[3] * CH)
+    };
+
+    private static float[] SmoothSame(float[] v, int k)
+    {
+        var o = new float[v.Length];
+        int lo = -(k - 1) + (k - 1) / 2, hi = (k - 1) / 2;
+        for (var i = 0; i < v.Length; i++)
+        {
+            float s = 0;
+            for (var d = lo; d <= hi; d++) { var j = i + d; if (j >= 0 && j < v.Length) s += v[j]; }
+            o[i] = s / k;
+        }
+        return o;
+    }
+
+    private static float MedianF(IEnumerable<float> src)
+    {
+        var a = src.OrderBy(v => v).ToArray();
+        if (a.Length == 0) return 0;
+        return a.Length % 2 == 1 ? a[a.Length / 2] : (a[a.Length / 2 - 1] + a[a.Length / 2]) / 2f;
+    }
+
+    private static (int a, int b)? RunOf(float[] prof, float thr, int center)
+    {
+        if (center < 0 || center >= prof.Length || !(prof[center] > thr)) return null;
+        int a = center, b = center;
+        while (a > 0 && prof[a - 1] > thr) a--;
+        while (b < prof.Length - 1 && prof[b + 1] > thr) b++;
+        return (a, b + 1);
+    }
+
+    /// Strong brightness edge between lo and hi (first pixel after the edge), else prior.
+    private static int EdgeOf(float[] lum, int axis, int lo, int hi, int c0, int c1, int prior, int inside)
+    {
+        lo = Math.Max(1, lo);
+        if (hi - lo < 3) return prior;
+        var len = hi - lo + 1;
+        var d = new float[len];
+        for (var j = 0; j < len; j++)
+        {
+            float s = 0; var cnt = 0;
+            for (var t = c0; t < c1; t++)
+            {
+                float v1, v0;
+                if (axis == 0) { v1 = lum[(lo + j) * CW + t]; v0 = lum[(lo - 1 + j) * CW + t]; }
+                else { v1 = lum[t * CW + lo + j]; v0 = lum[t * CW + lo - 1 + j]; }
+                s += Math.Abs(v1 - v0); cnt++;
+            }
+            d[j] = cnt > 0 ? s / cnt : 0;
+        }
+        var bi = 0;
+        for (var j = 1; j < len; j++) if (d[j] > d[bi]) bi = j;
+        if (d[bi] < 8 || d[bi] < 2.5f * (d.Average() + 1e-3f)) return prior;
+        var best = -1; var bdist = int.MaxValue;
+        for (var j = 0; j < len; j++)
+            if (d[j] >= 0.6f * d[bi]) { var dist = Math.Abs(j + lo - inside); if (dist < bdist) { bdist = dist; best = j + lo; } }
+        return best;
+    }
+
+    /// Art box (x0, y0, x1, y1): the textured block around the frame prior, snapped to the nearest strong edge.
+    private static (int, int, int, int) DetectArt(byte[] rgb)
+    {
+        int W = CW, H = CH;
+        var lum = new float[W * H];
+        for (var i = 0; i < lum.Length; i++) lum[i] = 0.299f * rgb[i * 3] + 0.587f * rgb[i * 3 + 1] + 0.114f * rgb[i * 3 + 2];
+        int x0 = (int)Math.Round(PriorArt[0] * W), y0 = (int)Math.Round(PriorArt[1] * H);
+        int x1 = (int)Math.Round(PriorArt[2] * W), y1 = (int)Math.Round(PriorArt[3] * H);
+        int tolY = (int)(0.04 * H), tolX = (int)(0.04 * W);
+        int c0 = (int)(0.20 * W), c1 = (int)(0.80 * W);
+
+        var rowsRaw = new float[H];
+        for (var y = 0; y < H; y++)
+        {
+            float s = 0;
+            for (var x = c0; x < c1; x++) s += Math.Abs(lum[y * W + x + 1] - lum[y * W + x]);
+            rowsRaw[y] = s / (c1 - c0);
+        }
+        var rows = SmoothSame(rowsRaw, 9);
+        var refv = MedianF(rows.Skip(y0).Take(y1 - y0)) + 1e-3f;
+        var run = RunOf(rows, 0.25f * refv, (y0 + y1) / 2);
+        int cy0 = y0, cy1 = y1;
+        if (run is { } r1 && Math.Abs(r1.a - y0) <= tolY && Math.Abs(r1.b - y1) <= tolY) { cy0 = r1.a; cy1 = r1.b; }
+
+        int ya = cy0 + (cy1 - cy0) / 4, yb = cy0 + 3 * (cy1 - cy0) / 4;
+        var colsRaw = new float[W];
+        if (yb > ya)
+            for (var x = 0; x < W; x++)
+            {
+                float s = 0;
+                for (var y = ya; y < yb; y++) s += Math.Abs(lum[(y + 1) * W + x] - lum[y * W + x]);
+                colsRaw[x] = s / (yb - ya);
+            }
+        var cols = SmoothSame(colsRaw, 9);
+        var cref = MedianF(cols.Skip(x0).Take(x1 - x0)) + 1e-3f;
+        var crun = RunOf(cols, 0.25f * cref, (x0 + x1) / 2);
+        int cx0 = x0, cx1 = x1;
+        if (crun is { } r2 && Math.Abs(r2.a - x0) <= tolX && Math.Abs(r2.b - x1) <= tolX) { cx0 = r2.a; cx1 = r2.b; }
+
+        int wy = (int)(0.009 * H), wx = (int)(0.009 * W);
+        int midY = (cy0 + cy1) / 2, midX = (cx0 + cx1) / 2;
+        var ny0 = EdgeOf(lum, 0, cy0 - wy, cy0 + wy, c0, c1, cy0, midY);
+        var ny1 = EdgeOf(lum, 0, cy1 - wy, cy1 + wy, c0, c1, cy1, midY);
+        int r0 = ny0 + (ny1 - ny0) / 4, rr1 = ny0 + 3 * (ny1 - ny0) / 4;
+        var nx0 = EdgeOf(lum, 1, cx0 - wx, cx0 + wx, r0, rr1, cx0, midX);
+        var nx1 = EdgeOf(lum, 1, cx1 - wx, cx1 + wx, r0, rr1, cx1, midX);
+        if ((ny1 - ny0) > 0.25 * H && (nx1 - nx0) > 0.6 * W) return (nx0, ny0, nx1, ny1);
+        return (x0, y0, x1, y1);
+    }
+
+    // --- tiny RGB-canvas toolkit (CW x CH) ---
+    private sealed class Hist
+    {
+        public readonly int[][] H = { new int[256], new int[256], new int[256] };
+        public int N;
+        public void Add(byte r, byte g, byte b) { H[0][r]++; H[1][g]++; H[2][b]++; N++; }
+        public double[] Median() => new[] { MedianHist(H[0], N), MedianHist(H[1], N), MedianHist(H[2], N) };
+        private static double MedianHist(int[] h, int n)
+        {
+            if (n == 0) return 0;
+            int lo = (n - 1) / 2, hi = n / 2, cum = 0;
+            double a = 0, b = 0; var gotA = false;
+            for (var v = 0; v < 256; v++)
+            {
+                cum += h[v];
+                if (!gotA && cum > lo) { a = v; gotA = true; }
+                if (cum > hi) { b = v; break; }
+            }
+            return (a + b) / 2;
+        }
+    }
+
+    private static void AddRegion(Hist h, byte[] img, int x0, int y0, int x1, int y1, bool skipDark = false)
+    {
+        x0 = Math.Clamp(x0, 0, CW); x1 = Math.Clamp(x1, 0, CW); y0 = Math.Clamp(y0, 0, CH); y1 = Math.Clamp(y1, 0, CH);
+        for (var y = y0; y < y1; y++)
+            for (var x = x0; x < x1; x++)
+            {
+                var i = (y * CW + x) * 3;
+                if (skipDark && 0.299 * img[i] + 0.587 * img[i + 1] + 0.114 * img[i + 2] <= 40) continue;
+                h.Add(img[i], img[i + 1], img[i + 2]);
+            }
+    }
+
+    private static double[] MedianRect(byte[] img, int x0, int y0, int x1, int y1)
+    {
+        var h = new Hist(); AddRegion(h, img, x0, y0, x1, y1); return h.Median();
+    }
+
+    private static void FillRect(byte[] img, int x0, int y0, int x1, int y1, byte r, byte g, byte b)
+    {
+        x0 = Math.Clamp(x0, 0, CW); x1 = Math.Clamp(x1, 0, CW); y0 = Math.Clamp(y0, 0, CH); y1 = Math.Clamp(y1, 0, CH);
+        for (var y = y0; y < y1; y++)
+            for (var x = x0; x < x1; x++) { var i = (y * CW + x) * 3; img[i] = r; img[i + 1] = g; img[i + 2] = b; }
+    }
+
+    private static void FillRect(byte[] img, int x0, int y0, int x1, int y1, double[] c)
+        => FillRect(img, x0, y0, x1, y1, (byte)Math.Round(c[0]), (byte)Math.Round(c[1]), (byte)Math.Round(c[2]));
+
+    private static void CopyRect(byte[] src, byte[] dst, int sx0, int sy0, int sx1, int sy1, int dx0, int dy0)
+    {
+        for (var y = sy0; y < sy1; y++)
+            for (var x = sx0; x < sx1; x++)
+            {
+                int dx = x - sx0 + dx0, dy = y - sy0 + dy0;
+                if (x < 0 || x >= CW || y < 0 || y >= CH || dx < 0 || dx >= CW || dy < 0 || dy >= CH) continue;
+                Buffer.BlockCopy(src, (y * CW + x) * 3, dst, (dy * CW + dx) * 3, 3);
+            }
+    }
+
+    private static byte[] Crop(byte[] img, int x0, int y0, int x1, int y1)
+    {
+        var w = x1 - x0; var h = y1 - y0;
+        var o = new byte[w * h * 3];
+        for (var y = 0; y < h; y++) Buffer.BlockCopy(img, ((y0 + y) * CW + x0) * 3, o, y * w * 3, w * 3);
+        return o;
+    }
+
+    private static byte[] ResizeBilinear(byte[] src, int sw, int sh, int dw, int dh)
+    {
+        var o = new byte[dw * dh * 3];
+        for (var y = 0; y < dh; y++)
+        {
+            var fy = Math.Max(0, (y + 0.5) * sh / dh - 0.5);
+            int y0 = Math.Min(sh - 1, (int)fy), y1 = Math.Min(sh - 1, y0 + 1); var ty = fy - y0;
+            for (var x = 0; x < dw; x++)
+            {
+                var fx = Math.Max(0, (x + 0.5) * sw / dw - 0.5);
+                int x0 = Math.Min(sw - 1, (int)fx), x1 = Math.Min(sw - 1, x0 + 1); var tx = fx - x0;
+                for (var c = 0; c < 3; c++)
+                {
+                    var v = src[(y0 * sw + x0) * 3 + c] * (1 - tx) * (1 - ty) + src[(y0 * sw + x1) * 3 + c] * tx * (1 - ty)
+                          + src[(y1 * sw + x0) * 3 + c] * (1 - tx) * ty + src[(y1 * sw + x1) * 3 + c] * tx * ty;
+                    o[(y * dw + x) * 3 + c] = (byte)Math.Clamp((int)Math.Round(v), 0, 255);
+                }
+            }
+        }
+        return o;
+    }
+
+    private static int[] InkFor(double[] bg) => 0.299 * bg[0] + 0.587 * bg[1] + 0.114 * bg[2] >= 128 ? new[] { 0, 0, 0 } : new[] { 255, 255, 255 };
+
+    /// The rectangle holding the card name: the title bar from its left edge up to the mana cost.
+    private static int[] NameZone(byte[] b)
+    {
+        int bx0 = (int)Math.Round(PriorNameBar[0] * CW), by0 = (int)Math.Round(PriorNameBar[1] * CH);
+        int bx1 = (int)Math.Round(PriorNameBar[2] * CW), by1 = (int)Math.Round(PriorNameBar[3] * CH);
+        var ob = Math.Max(4, (int)(0.3 * PxMm));
+        int y0 = by0 + ob, y1 = by1 - ob;
+        int xa = bx0 + (int)(0.5 * PxMm), xb = bx1 - (int)(1.0 * PxMm);
+        int inner0 = by0 + (int)(0.15 * (by1 - by0)), inner1 = by1 - (int)(0.15 * (by1 - by0));
+        var bg = MedianRect(b, xa, inner0, xb, inner1);
+        var col = new float[xb - xa];
+        for (var x = xa; x < xb; x++)
+        {
+            var hits = 0;
+            for (var y = inner0; y < inner1; y++)
+            {
+                var i = (y * CW + x) * 3;
+                if (Math.Abs(b[i] - bg[0]) + Math.Abs(b[i + 1] - bg[1]) + Math.Abs(b[i + 2] - bg[2]) > 80) hits++;
+            }
+            col[x - xa] = hits / (float)(inner1 - inner0);
+        }
+        var d = inner1 - inner0;
+        var w = Math.Max(4, d / 2);
+        int lo = -(w - 1) + (w - 1) / 2, hi = (w - 1) / 2;
+        var dense = new List<int>();
+        for (var i = 0; i < col.Length; i++)
+        {
+            float s = 0;
+            for (var t = lo; t <= hi; t++) { var j = i + t; if (j >= 0 && j < col.Length) s += col[j]; }
+            if (s / w > 0.5f) dense.Add(i);
+        }
+        var xEnd = xb;
+        if (dense.Count > 0)
+        {
+            var left = dense[^1];
+            for (var i = dense.Count - 1; i >= 0; i--)
+            {
+                if (left - dense[i] <= 0.5 * d) left = dense[i]; else break;   // walk left across touching pips
+            }
+            xEnd = xa + left - w / 2 - (int)(1.0 * PxMm);
+        }
+        xEnd = Math.Max(xEnd, xa + (int)(0.3 * CW));
+        return new[] { xa, y0, Math.Min(xEnd, xb), y1 };
+    }
+
+    private async Task<(bool applied, string note)> RelayoutAsync(Params p)
+    {
+        string text = p.CardText.Trim(), name = p.CardName.Trim(), typ = p.CardType.Trim();
+        if (text.Length == 0 && name.Length == 0 && typ.Length == 0)
+            return (false, "Layout: enter or fetch the card text to enable it.");
+
+        var b = await GetRgb("front", CW, CH);
+        int W = CW, H = CH;
+        var (ax0, ay0, ax1, ay1) = DetectArt(b);
+        int[] tb = Rect(PriorTypeBar), box = Rect(PriorBox), tt = Rect(PriorTypeTxt), ptr = Rect(PriorPtBox);
+        int lx = box[0], rx = box[2];
+        int lx2 = Math.Max(0, lx - 6), rx2 = Math.Min(W, rx + 6);
+        int Wa = ax1 - ax0, Ha = ay1 - ay0;
+        int ix = (int)(2.2 * PxMm), iy = (int)(1.8 * PxMm);
+        int areaW = (box[2] - box[0]) - 2 * ix;
+
+        // frame colour = colour just outside the art box (ignoring its black outline)
+        var ring = new Hist();
+        AddRegion(ring, b, ax0, Math.Max(0, ay0 - 12), ax1, ay0 - 5, true);
+        AddRegion(ring, b, ax0, ay1 + 5, ax1, ay1 + 9, true);
+        AddRegion(ring, b, Math.Max(0, ax0 - 14), ay0, ax0 - 5, ay1, true);
+        AddRegion(ring, b, ax1 + 5, ay0, ax1 + 14, ay1, true);
+        var frame = ring.N > 0 ? ring.Median() : MedianRect(b, 0, 0, W, H);
+        var boxH0 = box[3] - box[1];
+        var boxBg = MedianRect(b, lx + ix, box[1] + (int)(0.03 * boxH0), rx - ix, box[3] - (int)(0.03 * boxH0));
+        // a P/T box hangs below the text box: it is there if that strip differs from the frame
+        var strip = MedianRect(b, ptr[0], (int)(0.925 * H), ptr[2], (int)(0.940 * H));
+        var hasPt = p.CardPt.Trim().Length > 0 || Enumerable.Range(0, 3).Max(c => Math.Abs(strip[c] - frame[c])) > 40;
+        var bottom = hasPt ? Math.Min(box[3], (int)(PtTop * H)) : box[3];
+
+        int AreaH(double scale) => bottom - (box[1] - (Ha - (int)(Ha * scale))) - 2 * iy;
+
+        var sMin = Math.Min(1.0, Math.Max(0.4, p.ArtScale));
+        var s = text.Length == 0 ? 1.0 : sMin;
+        if (text.Length > 0 && p.ArtAuto)
+        {
+            for (var sTry = 1.0; sTry >= sMin - 1e-9; sTry -= 0.02)
+            {
+                var f = await JS.InvokeAsync<FitRes>("mtg.fit", text, areaW, AreaH(sTry), TextTargetMm, TextTargetMm, p.DropReminder);
+                if (f.Fits) { s = sTry; break; }
+            }
+        }
+        var nh = (int)(Ha * s);
+        var delta = Ha - nh;
+        var by0 = box[1] - delta;
+
+        var o = (byte[])b.Clone();
+        FillRect(o, lx2, ay0 - 8, rx2, box[3], frame);
+
+        byte[] artN; int nw, ahN;
+        if (p.ArtFit == "crop")
+        {
+            var top = (Ha - nh) / 2;
+            artN = Crop(b, ax0, ay0 + top, ax1, ay0 + top + nh);
+            nw = Wa; ahN = nh;
+        }
+        else
+        {
+            nw = Math.Max(8, (int)(Wa * s)); ahN = Math.Max(8, nh);
+            artN = ResizeBilinear(Crop(b, ax0, ay0, ax1, ay1), Wa, Ha, nw, ahN);
+        }
+        var px0 = ax0 + (Wa - nw) / 2;
+        for (var y = 0; y < ahN; y++)
+            Buffer.BlockCopy(artN, y * nw * 3, o, ((ay0 + y) * W + px0) * 3, nw * 3);
+        byte dk = 10;
+        var lw = (int)(0.45 * PxMm);
+        FillRect(o, px0 - lw, ay0 - lw, px0 + nw + lw, ay0, dk, dk, dk);                     // outline around the art
+        FillRect(o, px0 - lw, ay0 + ahN, px0 + nw + lw, ay0 + ahN + lw, dk, dk, dk);
+        FillRect(o, px0 - lw, ay0, px0, ay0 + ahN, dk, dk, dk);
+        FillRect(o, px0 + nw, ay0, px0 + nw + lw, ay0 + ahN, dk, dk, dk);
+
+        CopyRect(b, o, lx2, tb[1], rx2, tb[3], lx2, tb[1] - delta);                           // type bar moves up
+        FillRect(o, lx, by0, rx, box[3], boxBg);                                              // taller text box
+        var ob = (int)(0.4 * PxMm);
+        FillRect(o, lx, by0, rx, by0 + ob, dk, dk, dk);
+        FillRect(o, lx, box[3] - ob, rx, box[3], dk, dk, dk);
+        FillRect(o, lx, by0, lx + ob, box[3], dk, dk, dk);
+        FillRect(o, rx - ob, by0, rx, box[3], dk, dk, dk);
+        if (hasPt) CopyRect(b, o, ptr[0], ptr[1], ptr[2], ptr[3], ptr[0], ptr[1]);            // keep the original P/T box
+
+        var nz = NameZone(b);
+        double[]? nameBg = null, typeBg = null;
+        if (p.RedrawTitles && name.Length > 0)
+        {
+            nameBg = MedianRect(b, nz[0], nz[1], nz[2], nz[3]);
+            FillRect(o, nz[0], nz[1], nz[2], nz[3], nameBg);
+        }
+        if (p.RedrawTitles && typ.Length > 0)
+        {
+            typeBg = MedianRect(b, tt[0], tt[1], tt[2], tt[3]);
+            FillRect(o, tt[0], tt[1] - delta, tt[2], tt[3] - delta, typeBg);
+        }
+
+        await SetSource("work", o, CW, CH);
+
+        var ops = new List<object>();
+        var pad = (int)(0.9 * PxMm);
+        if (nameBg != null)
+            ops.Add(new { kind = "line", text = name, rect = new[] { nz[0] + pad, nz[1], nz[2], nz[3] }, maxMm = 3.8, ink = InkFor(nameBg) });
+        if (typeBg != null)
+            ops.Add(new { kind = "line", text = typ, rect = new[] { tt[0], tt[1] - delta, tt[2], tt[3] - delta }, maxMm = 3.2, ink = InkFor(typeBg) });
+        var ah = AreaH(s);
+        if (text.Length > 0)
+            ops.Add(new
+            {
+                kind = "block", text,
+                rect = new[] { lx + ix, by0 + iy, areaW, ah },
+                maxMm = TextMaxMm, minMm = TextMinMm, drop = p.DropReminder,
+                ink = InkFor(boxBg), bg = boxBg.Select(v => (int)Math.Round(v)).ToArray()
+            });
+        var drawn = await JS.InvokeAsync<DrawRes?>("mtg.drawText", "work", ops);
+
+        var notes = new List<string>();
+        if (text.Length > 0 && drawn != null)
+        {
+            notes.Add($"art {s * 100:0}%, text {drawn.Em / PxMm:0.0} mm");
+            if (!drawn.Fits) notes.Add("TEXT TOO LONG - lower the art size or shorten the text");
+        }
+        else if (delta > 0) notes.Add($"art {s * 100:0}%");
+        return (true, notes.Count > 0 ? "Layout: " + string.Join(", ", notes) : "");
+    }
+
+    // =====================================================================================
+    // Build a whole frame around plain art (drawn in JS)
+    // =====================================================================================
+    private static string ResolveFrameKey(string s)
+    {
+        var low = (s ?? "").Trim().ToLowerInvariant();
+        if (low is "multicolor" or "gold" or "m") return "gold";
+        if (FrameBase.ContainsKey(low)) return low;
+        var letters = new HashSet<char>(low.ToUpperInvariant().Where(c => "WUBRG".Contains(c)));
+        if (letters.Count >= 2) return "gold";
+        if (letters.Count == 1) return letters.First().ToString();
+        return "colorless";
+    }
+
+    private async Task<string> BuildFrameAsync(Params p)
+    {
+        var key = ResolveFrameKey(p.FrameColors);
+        var spec = new
+        {
+            baseColor = FrameBase[key],
+            art = Rect(PriorArt), name = Rect(PriorNameBar), type = Rect(PriorTypeBar), box = Rect(PriorBox), pt = Rect(PriorPtBox),
+            cardName = p.CardName.Trim(), cardType = p.CardType.Trim(), cardText = p.CardText.Trim(), cardPt = p.CardPt.Trim(),
+            mana = p.ManaCost.Trim(), drop = p.DropReminder,
+            textMaxMm = TextMaxMm, textMinMm = TextMinMm, ptTop = PtTop,
+        };
+        var r = await JS.InvokeAsync<DrawRes>("mtg.buildFrame", "front", "work", spec);
+        var notes = new List<string> { $"frame: {key}" };
+        if (p.CardText.Trim().Length > 0)
+        {
+            notes.Add($"text {r.Em / PxMm:0.0} mm");
+            if (!r.Fits) notes.Add("TEXT TOO LONG - shorten it");
+        }
+        return "Frame: " + string.Join(", ", notes);
+    }
+
+    // =====================================================================================
+    // Meshing: one closed mesh per color, unit-cell faces so every edge matches
+    // =====================================================================================
+    private static sbyte[] FlipUd(sbyte[] L, int nx, int ny)
+    {
+        var o = new sbyte[L.Length];
+        for (var y = 0; y < ny; y++) Array.Copy(L, y * nx, o, (ny - 1 - y) * nx, nx);
+        return o;
+    }
+
+    private static (double[] V, int[] T)?[] BuildMeshes(Result r, int k, Params p)
+    {
+        int nx = r.Nx, ny = r.Ny;
+        var lh = p.LayerH;
+        var frontN = Math.Max(1, (int)Math.Round(p.FrontMm / lh));
+        var backN = Math.Max(1, (int)Math.Round(p.BackMm / lh));
+        var coreN = Math.Max(0, (int)Math.Round(p.CoreMm / lh));
+        var coreIdx = p.CoreColor == "Darkest" ? 0 : k - 1;
+        var core = new sbyte[nx * ny];
+        for (var i = 0; i < core.Length; i++) core[i] = r.Mask[i] ? (sbyte)coreIdx : (sbyte)-1;
+
+        var zones = new List<(sbyte[] L, int N)> { (r.Back, backN) };
+        if (coreN > 0) zones.Add((core, coreN));
+        zones.Add((r.Front, frontN));
+
+        // Avoid colors that touch across a layer boundary only along a single edge (non-manifold):
+        // extend the lower zone's color underneath the neighbour.
+        for (var zi = 0; zi < zones.Count - 1; zi++)
+        {
+            var A = (sbyte[])zones[zi].L.Clone();
+            var B = zones[zi + 1].L;
+            for (var rep = 0; rep < 2; rep++)
+                foreach (var (dy, dx) in new[] { (0, 1), (0, -1), (1, 0), (-1, 0) })
+                {
+                    int ys = Math.Max(0, -dy), ye = ny - Math.Max(0, dy), xs = Math.Max(0, -dx), xe = nx - Math.Max(0, dx);
+                    var fix = new List<(int q, sbyte v)>();
+                    for (var y = ys; y < ye; y++)
+                        for (var x = xs; x < xe; x++)
+                        {
+                            int ip = y * nx + x, iq = (y + dy) * nx + (x + dx);
+                            int ap = A[ip], aq = A[iq], bp = B[ip], bq = B[iq];
+                            if (ap >= 0 && aq >= 0 && bp >= 0 && bq >= 0 && ap == bq && aq != ap && bp != ap) fix.Add((iq, (sbyte)ap));
+                        }
+                    foreach (var f in fix) A[f.q] = f.v;
+                }
+            zones[zi] = (A, zones[zi].N);
+        }
+        zones = zones.Select(zn => (FlipUd(zn.L, nx, ny), zn.N)).ToList();   // row index increases with +Y
+
+        int Vid(int ix, int iy, int iz) => (iz * (ny + 1) + iy) * (nx + 1) + ix;
+
+        void Quad(List<int> T, int a, int b, int c, int d, bool flip)
+        {
+            if (!flip) { T.Add(a); T.Add(b); T.Add(c); T.Add(a); T.Add(c); T.Add(d); }
+            else { T.Add(a); T.Add(c); T.Add(b); T.Add(a); T.Add(d); T.Add(c); }
+        }
+
+        var tri = Enumerable.Range(0, k).Select(_ => new List<int>()).ToArray();
+        var z = 0;
+        for (var zi = 0; zi < zones.Count; zi++)
+        {
+            var (L, n) = zones[zi];
+            int z0 = z, z1 = z + n; z = z1;
+            var up = zi + 1 < zones.Count ? zones[zi + 1].L : null;
+            var dn = zi > 0 ? zones[zi - 1].L : null;
+            for (var y = 0; y < ny; y++)
+                for (var x = 0; x < nx; x++)
+                {
+                    var i = y * nx + x;
+                    int c = L[i];
+                    if (c < 0 || c >= k) continue;
+                    var T = tri[c];
+                    if (up == null || up[i] != c) Quad(T, Vid(x, y, z1), Vid(x + 1, y, z1), Vid(x + 1, y + 1, z1), Vid(x, y + 1, z1), false);
+                    if (dn == null || dn[i] != c) Quad(T, Vid(x, y, z0), Vid(x + 1, y, z0), Vid(x + 1, y + 1, z0), Vid(x, y + 1, z0), true);
+                    int nE = x + 1 < nx ? L[i + 1] : -1, nW = x > 0 ? L[i - 1] : -1;
+                    int nN = y + 1 < ny ? L[i + nx] : -1, nS = y > 0 ? L[i - nx] : -1;
+                    if (nE != c) Quad(T, Vid(x + 1, y, z0), Vid(x + 1, y + 1, z0), Vid(x + 1, y + 1, z1), Vid(x + 1, y, z1), false);
+                    if (nW != c) Quad(T, Vid(x, y, z0), Vid(x, y + 1, z0), Vid(x, y + 1, z1), Vid(x, y, z1), true);
+                    if (nN != c) Quad(T, Vid(x + 1, y + 1, z0), Vid(x, y + 1, z0), Vid(x, y + 1, z1), Vid(x + 1, y + 1, z1), false);
+                    if (nS != c) Quad(T, Vid(x + 1, y, z0), Vid(x, y, z0), Vid(x, y, z1), Vid(x + 1, y, z1), true);
+                }
+        }
+
+        var totalVerts = (nx + 1) * (ny + 1) * (z + 1);
+        var meshes = new (double[] V, int[] T)?[k];
+        for (var c = 0; c < k; c++)
+        {
+            if (tri[c].Count == 0) continue;
+            var used = new bool[totalVerts];
+            foreach (var id in tri[c]) used[id] = true;
+            var remap = new int[totalVerts];
+            var verts = new List<double>();
+            var count = 0;
+            for (var id = 0; id < totalVerts; id++)
+            {
+                if (!used[id]) continue;
+                remap[id] = count++;
+                var ixv = id % (nx + 1); var rem = id / (nx + 1);
+                var iyv = rem % (ny + 1); var izv = rem / (ny + 1);
+                verts.Add(ixv * (p.Width / nx)); verts.Add(iyv * (p.Height / ny)); verts.Add(izv * lh);   // exact card size
+            }
+            var t = tri[c].Select(id => remap[id]).ToArray();
+            meshes[c] = (verts.ToArray(), t);
+        }
+        return meshes;
+    }
+
+    // =====================================================================================
+    // 3MF writer (Bambu Studio layout: one object, one part per color, each part on its filament)
+    // =====================================================================================
+    private static byte[] Write3Mf((double[] V, int[] T)?[] meshes, byte[][] pal, Params p, string title, out string note)
+    {
+        var inv = CultureInfo.InvariantCulture;
+        var hexes = pal.Select(Hex).ToList();
+        var n = hexes.Count;
+
+        // --- project settings: colors + (optionally) 100% infill and A1 mini names
+        var settings = new Dictionary<string, object>
+        {
+            ["filament_colour"] = hexes,
+            ["filament_type"] = Enumerable.Repeat("PLA", n).ToList(),
+        };
+        note = "colors only";
+        if (p.EmbedMode != "colors")
+        {
+            settings["sparse_infill_density"] = $"{p.InfillPct}%";
+            settings["layer_height"] = p.LayerH.ToString("G", inv);
+            settings["initial_layer_print_height"] = p.LayerH.ToString("G", inv);   // slice planes must match the color layers
+            note = $"{p.InfillPct}% infill";
+        }
+        if (p.EmbedMode == "essentials")
+        {
+            settings["print_settings_id"] = DefaultProcess;
+            settings["printer_settings_id"] = PrinterName;
+            settings["filament_settings_id"] = Enumerable.Repeat(DefaultFilament, n).ToList();
+            settings["nozzle_diameter"] = new List<string> { NozzleMm.ToString("G", inv) };
+            settings["printer_model"] = PrinterModel;
+            settings["printer_variant"] = NozzleMm.ToString("G", inv);
+            note = $"{PrinterName}, {p.InfillPct}% infill";
+        }
+        double cx = 90.0, cy = 90.0;                                // A1 mini bed is 180 x 180 mm
+
+        var parts = meshes.Select((m, i) => (m, i)).Where(t => t.m != null).ToList();
+        var assemblyId = parts.Count + 1;
+        var esc = System.Net.WebUtility.HtmlEncode(title);
+
+        var sb = new StringBuilder();
+        sb.Append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        sb.Append("<model unit=\"millimeter\" xml:lang=\"en-US\" xmlns=\"http://schemas.microsoft.com/3dmanufacturing/core/2015/02\" xmlns:BambuStudio=\"http://schemas.bambulab.com/package/2021\">\n");
+        sb.Append("<metadata name=\"Application\">BambuStudio-01.10.00.00</metadata>\n");
+        sb.Append("<metadata name=\"BambuStudio:3mfVersion\">1</metadata>\n");
+        sb.Append($"<metadata name=\"Title\">{esc}</metadata>\n<resources>\n");
+        for (var pi = 0; pi < parts.Count; pi++)
+        {
+            var (verts, tris) = parts[pi].m!.Value;
+            sb.Append($"<object id=\"{pi + 1}\" type=\"model\"><mesh><vertices>\n");
+            for (var v = 0; v < verts.Length; v += 3)
+                sb.Append("<vertex x=\"").Append(verts[v].ToString("F3", inv)).Append("\" y=\"").Append(verts[v + 1].ToString("F3", inv))
+                  .Append("\" z=\"").Append(verts[v + 2].ToString("F3", inv)).Append("\"/>");
+            sb.Append("\n</vertices><triangles>\n");
+            for (var t = 0; t < tris.Length; t += 3)
+                sb.Append("<triangle v1=\"").Append(tris[t]).Append("\" v2=\"").Append(tris[t + 1]).Append("\" v3=\"").Append(tris[t + 2]).Append("\"/>");
+            sb.Append("\n</triangles></mesh></object>\n");
+        }
+        sb.Append($"<object id=\"{assemblyId}\" type=\"model\"><components>\n");
+        for (var pi = 1; pi <= parts.Count; pi++) sb.Append($"<component objectid=\"{pi}\"/>\n");
+        sb.Append("</components></object></resources>\n");
+        var tx = cx - p.Width / 2; var ty = cy - p.Height / 2;
+        sb.Append($"<build><item objectid=\"{assemblyId}\" transform=\"1 0 0 0 1 0 0 0 1 {tx.ToString("F3", inv)} {ty.ToString("F3", inv)} 0\" printable=\"1\"/></build>\n</model>");
+        var modelXml = sb.ToString();
+
+        var cfg = new StringBuilder();
+        cfg.Append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<config>\n");
+        cfg.Append($"  <object id=\"{assemblyId}\">\n    <metadata key=\"name\" value=\"{esc}\"/>\n    <metadata key=\"extruder\" value=\"1\"/>\n");
+        for (var pi = 0; pi < parts.Count; pi++)
+        {
+            var i = parts[pi].i;
+            cfg.Append($"    <part id=\"{pi + 1}\" subtype=\"normal_part\">\n");
+            cfg.Append($"      <metadata key=\"name\" value=\"Color {i + 1} {hexes[i]}\"/>\n");
+            cfg.Append("      <metadata key=\"matrix\" value=\"1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1\"/>\n");
+            cfg.Append($"      <metadata key=\"extruder\" value=\"{i + 1}\"/>\n    </part>\n");
+        }
+        cfg.Append("  </object>\n  <plate>\n    <metadata key=\"plater_id\" value=\"1\"/>\n    <metadata key=\"plater_name\" value=\"\"/>\n    <metadata key=\"locked\" value=\"false\"/>\n");
+        cfg.Append($"    <model_instance>\n      <metadata key=\"object_id\" value=\"{assemblyId}\"/>\n      <metadata key=\"instance_id\" value=\"0\"/>\n    </model_instance>\n  </plate>\n</config>");
+
+        const string ctypes = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">"
+            + "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>"
+            + "<Default Extension=\"model\" ContentType=\"application/vnd.ms-package.3dmanufacturing-3dmodel+xml\"/>"
+            + "<Default Extension=\"config\" ContentType=\"text/xml\"/></Types>";
+        const string rels = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+            + "<Relationship Target=\"/3D/3dmodel.model\" Id=\"rel-1\" Type=\"http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel\"/></Relationships>";
+
+        var project = new Dictionary<string, object> { ["from"] = "project", ["name"] = "project_settings", ["version"] = "01.10.00.00" };
+        foreach (var kv in settings) project[kv.Key] = kv.Value;
+
+        using var ms = new MemoryStream();
+        using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
+        {
+            void Add(string entry, string content)
+            {
+                var e = zip.CreateEntry(entry, CompressionLevel.Optimal);
+                using var w = new StreamWriter(e.Open(), new UTF8Encoding(false));
+                w.Write(content);
+            }
+            Add("[Content_Types].xml", ctypes);
+            Add("_rels/.rels", rels);
+            Add("3D/3dmodel.model", modelXml);
+            Add("Metadata/model_settings.config", cfg.ToString());
+            Add("Metadata/project_settings.config", JsonSerializer.Serialize(project, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        return ms.ToArray();
+    }
+
+    private async Task Generate()
+    {
+        if (!hasFront) { SetStatus("Load a card front image first.", true); return; }
+        if (busy) return;
+        busy = true;
+        try
+        {
+            Params p;
+            try { p = ReadParams(); }
+            catch (ParamError ex) { SetStatus(ex.Message, true); return; }
+            catch (FormatException) { SetStatus("Check the numeric fields.", true); return; }
+
+            // (re)process the image only when something changed; keeps swatch color edits otherwise
+            if (res == null || palette == null || dirty)
+            {
+                SetStatus("Processing image...");
+                StateHasChanged();
+                await Task.Delay(30);
+                res = await ProcessAsync(p);
+                palette = res.Palette.Select(c => (byte[])c.Clone()).ToArray();
+                ApplyOverrides();
+                dirty = false;
+            }
+
+            SetStatus("Building 3MF...");
+            StateHasChanged();
+            await Task.Delay(30);
+
+            var total = p.FrontMm + p.BackMm + p.CoreMm;
+            infoSize = $"{p.Width:0.#} x {p.Height:0.#} mm";
+            infoThickness = $"{total:0.##} mm";
+            infoGrid = $"{res.Nx} x {res.Ny}";
+            warning = Math.Max(p.Width, p.Height) > 150 ? "Large card: little room for the prime tower on the 180 mm bed." : "";
+
+            var meshes = BuildMeshes(res, palette.Length, p);
+            var baseName = Path.GetFileNameWithoutExtension(frontFile);
+            if (string.IsNullOrWhiteSpace(baseName)) baseName = "MTG Card";
+            var bytes = Write3Mf(meshes, palette, p, baseName, out var note);
+            await JS.InvokeVoidAsync("mtg.download", baseName + ".3mf", new DotNetStreamReference(new MemoryStream(bytes)));
+            var layout = string.IsNullOrEmpty(res.Note) ? "" : res.Note + " | ";
+            SetStatus($"{layout}Saved {baseName}.3mf ({note}, {bytes.Length / 1024.0 / 1024.0:0.0} MB)");
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Could not generate the file: {ex.GetType().Name}: {ex.Message}", true);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}
