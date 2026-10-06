@@ -1,5 +1,5 @@
 self.assetsManifest = {
-  "version": "OsFVgYdd",
+  "version": "Z3X5lK1Q",
   "assets": [
     {
       "hash": "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
@@ -10,7 +10,7 @@ self.assetsManifest = {
       "url": "404.html"
     },
     {
-      "hash": "sha256-KxclZ07v2mox4mnV/7fZGX1X2uzrNMdW8reUElir1y8=",
+      "hash": "sha256-yjTEmmRBkoyEFR7J6M2DSmSRtMMDW5yBEpHw6EV/qwE=",
       "url": "MichalMalenda.github.io.styles.css"
     },
     {
@@ -74,7 +74,7 @@ self.assetsManifest = {
       "url": "_framework/Flurl.wasm"
     },
     {
-      "hash": "sha256-SPMvWKkpSfj+jmchUEKPvAgZ6I2drcqdkaNbeDVYYzY=",
+      "hash": "sha256-6qgJVIdP8IuQjqMFfLyPrrU1lWSHDZGZmRxR3nRrpV0=",
       "url": "_framework/MichalMalenda.github.io.wasm"
     },
     {
@@ -254,7 +254,7 @@ self.assetsManifest = {
       "url": "_framework/System.ObjectModel.wasm"
     },
     {
-      "hash": "sha256-Gv3H8wxE9JbbHEMlIzjcGcY+9Ya4qeecnKT/SCYUNRs=",
+      "hash": "sha256-Cun4xmsWM065Y6XvYT2kcAWpdugCMPjvBEqQTKSIb+I=",
       "url": "_framework/System.Private.CoreLib.wasm"
     },
     {
@@ -354,7 +354,7 @@ self.assetsManifest = {
       "url": "_framework/System.wasm"
     },
     {
-      "hash": "sha256-oPZiTm3ykPBrgCD6Q/xH2v8n31X3D5QpiW1IcC1vCf4=",
+      "hash": "sha256-me/truUg/uS+ySvw6UGpviFpgEmzg+bJywHjaLlflAs=",
       "url": "_framework/blazor.boot.json"
     },
     {

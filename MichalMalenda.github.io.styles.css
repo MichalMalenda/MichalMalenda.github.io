@@ -2868,6 +2868,310 @@ h1[inherit-scope] {
             color: #A5C9FF !important;
             background-color: rgba(165, 201, 255, 0.1) !important;
         }
+/* /Pages/TranscriptTool.razor.rz.scp.css */
+/* ---------- layout shell (same conventions as MtgCardGenerator) ---------- */
+.tx-page[inherit-scope] {
+    width: 100%;
+    max-width: 1100px;
+    margin: 20px auto;
+}
+
+h1[inherit-scope] {
+    text-align: center;
+    margin: 20px 0;
+    color: #e5e5e5;
+}
+
+.color-text[inherit-scope] {
+    color: #e5e5e5;
+    font-family: monospace;
+    white-space: nowrap;
+}
+
+.session-label[inherit-scope] {
+    font-size: 1.1rem;
+    color: #e5e5e5;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.stat-value[inherit-scope] {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #A5C9FF;
+}
+
+/* ---------- buttons ---------- */
+.card-button[inherit-scope] {
+    background-color: black;
+    color: #e5e5e5;
+    border: 1px solid #333;
+    border-radius: 15px;
+    margin: 5px 8px;
+    padding: 8px 18px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-family: 'Consolas', monospace;
+    transition: all 0.3s ease;
+    display: inline-block;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+    .card-button:hover:not(:disabled)[inherit-scope] {
+        border-color: #A5C9FF;
+        color: #A5C9FF;
+    }
+
+    .card-button:focus[inherit-scope] {
+        outline: none;
+        border-color: #A5C9FF;
+    }
+
+    .card-button:disabled[inherit-scope] {
+        opacity: 0.4;
+        cursor: default;
+    }
+
+.card-button-wide[inherit-scope] {
+    min-width: 220px;
+}
+
+/* ---------- stats strip ---------- */
+.stats-section[inherit-scope] {
+    margin: 25px 0;
+    padding: 20px;
+    background-color: #111;
+    border: 1px solid #333;
+    border-radius: 15px;
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.stat-item[inherit-scope] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+/* ---------- model download progress ---------- */
+.progress-wrap[inherit-scope] {
+    margin: -10px 0 20px;
+    text-align: center;
+}
+
+.progress-bar[inherit-scope] {
+    height: 8px;
+    background-color: #111;
+    border: 1px solid #333;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.progress-fill[inherit-scope] {
+    height: 100%;
+    background-color: #A5C9FF;
+    transition: width 0.3s ease;
+}
+
+.panel-note[inherit-scope] {
+    font-size: 0.85rem;
+    opacity: 0.65;
+    margin: 4px 0 10px;
+    white-space: normal;
+}
+
+/* ---------- transcript box ---------- */
+.transcript-box[inherit-scope] {
+    height: 420px;
+    overflow-y: auto;
+    padding: 16px 20px;
+    background-color: #111;
+    border: 1px solid #333;
+    border-radius: 15px;
+    font-family: 'Consolas', monospace;
+    font-size: 0.95rem;
+    color: #e5e5e5;
+    text-align: left;
+    user-select: text;
+}
+
+.transcript-empty[inherit-scope] {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #777;
+}
+
+.line[inherit-scope] {
+    margin: 0 0 8px;
+    line-height: 1.45;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.ts[inherit-scope] {
+    opacity: 0.7;
+    margin-right: 6px;
+}
+
+.src[inherit-scope] {
+    display: inline-block;
+    min-width: 34px;
+    padding: 0 8px;
+    margin-right: 6px;
+    border: 1px solid #333;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.src-pc[inherit-scope] {
+    color: #A5C9FF;
+    border-color: #A5C9FF;
+}
+
+.src-mic[inherit-scope] {
+    color: #ffd27a;
+    border-color: #ffd27a;
+}
+
+.lang[inherit-scope] {
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 0.8rem;
+    opacity: 0.6;
+    text-transform: uppercase;
+}
+
+/* ---------- settings panels ---------- */
+.settings-grid[inherit-scope] {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+.panel[inherit-scope] {
+    padding: 20px;
+    background-color: #111;
+    border: 1px solid #333;
+    border-radius: 15px;
+}
+
+.setting-group[inherit-scope] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin: 10px 0;
+}
+
+.setting-label[inherit-scope] {
+    display: inline-block;
+    flex: 0 0 170px;
+    text-align: left;
+    white-space: normal;
+}
+
+.setting-control[inherit-scope] {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+}
+
+input[type="checkbox"][inherit-scope] {
+    margin: 0 5px;
+    accent-color: #A5C9FF;
+}
+
+.radio-label[inherit-scope] {
+    color: #e5e5e5;
+    margin-left: 5px;
+    cursor: pointer;
+    font-family: 'Consolas', monospace;
+}
+
+.mtg-select[inherit-scope] {
+    background-color: black;
+    color: #e5e5e5;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 6px 10px;
+    font-family: 'Consolas', monospace;
+    font-size: 0.95rem;
+    max-width: 100%;
+    transition: border-color 0.3s ease;
+}
+
+    .mtg-select:focus[inherit-scope] {
+        outline: none;
+        border-color: #A5C9FF;
+    }
+
+    .mtg-select:disabled[inherit-scope] {
+        opacity: 0.4;
+    }
+
+/* ---------- export / status ---------- */
+.export-section[inherit-scope] {
+    text-align: center;
+    margin: 20px 0 10px;
+}
+
+.status-text[inherit-scope] {
+    margin: 12px 0;
+    min-height: 1.4em;
+    text-align: center;
+    white-space: normal;
+}
+
+.status-error[inherit-scope] {
+    color: #ff8a8a;
+}
+
+/* ---------- mobile ---------- */
+@media (max-width: 768px) {
+    .setting-group[inherit-scope] {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+        gap: 6px;
+    }
+
+    .setting-label[inherit-scope] {
+        flex: 0 0 auto;
+        text-align: center;
+    }
+
+    .setting-control[inherit-scope] {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .stats-section[inherit-scope] {
+        flex-direction: column;
+    }
+
+    .transcript-box[inherit-scope] {
+        height: 320px;
+    }
+
+    .card-button[inherit-scope] {
+        margin: 5px;
+        min-width: 120px;
+    }
+}
 /* /Shared/SearchBar.razor.rz.scp.css */
 .search-bar[b-04mkm8iwjr] {
     width: 75%;

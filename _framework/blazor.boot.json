@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "MichalMalenda.github.io",
   "resources": {
-    "hash": "sha256-wX+Ci9KYcB2blB70P2Sa9EvFVOSoJKkKHV+++Ysn5oA=",
+    "hash": "sha256-YL75dpN0LxJyAd5tLC3487tfPE4iV+aWm9PWEYrf9u4=",
     "jsModuleNative": {
       "dotnet.native.js": "sha256-9NoXeVUo4WNrEqrjAp/y3Yc8NmDcymQkzMGOIbIpGio="
     },
@@ -89,8 +89,8 @@
       "System.Xml.Linq.wasm": "sha256-bgGdDHnHWPudvWGA9jpPFtW6Q4wNQ0Dl0QJACkxKdVI=",
       "System.wasm": "sha256-1luKvPmMGcjC9JPzmrtFC2En/NM4Qzkg7Syt5bEUqZY=",
       "netstandard.wasm": "sha256-J2nUXHgWd8ZNhrJy/TL+j0H5XxfkIgHuDLy77s3cRUs=",
-      "System.Private.CoreLib.wasm": "sha256-Gv3H8wxE9JbbHEMlIzjcGcY+9Ya4qeecnKT/SCYUNRs=",
-      "MichalMalenda.github.io.wasm": "sha256-SPMvWKkpSfj+jmchUEKPvAgZ6I2drcqdkaNbeDVYYzY="
+      "System.Private.CoreLib.wasm": "sha256-Cun4xmsWM065Y6XvYT2kcAWpdugCMPjvBEqQTKSIb+I=",
+      "MichalMalenda.github.io.wasm": "sha256-6qgJVIdP8IuQjqMFfLyPrrU1lWSHDZGZmRxR3nRrpV0="
     }
   },
   "cacheBootResources": true,
