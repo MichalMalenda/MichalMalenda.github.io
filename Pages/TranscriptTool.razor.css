@@ -1,0 +1,303 @@
+/* ---------- layout shell (same conventions as MtgCardGenerator) ---------- */
+.tx-page {
+    width: 100%;
+    max-width: 1100px;
+    margin: 20px auto;
+}
+
+h1 {
+    text-align: center;
+    margin: 20px 0;
+    color: #e5e5e5;
+}
+
+.color-text {
+    color: #e5e5e5;
+    font-family: monospace;
+    white-space: nowrap;
+}
+
+.session-label {
+    font-size: 1.1rem;
+    color: #e5e5e5;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #A5C9FF;
+}
+
+/* ---------- buttons ---------- */
+.card-button {
+    background-color: black;
+    color: #e5e5e5;
+    border: 1px solid #333;
+    border-radius: 15px;
+    margin: 5px 8px;
+    padding: 8px 18px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-family: 'Consolas', monospace;
+    transition: all 0.3s ease;
+    display: inline-block;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+    .card-button:hover:not(:disabled) {
+        border-color: #A5C9FF;
+        color: #A5C9FF;
+    }
+
+    .card-button:focus {
+        outline: none;
+        border-color: #A5C9FF;
+    }
+
+    .card-button:disabled {
+        opacity: 0.4;
+        cursor: default;
+    }
+
+.card-button-wide {
+    min-width: 220px;
+}
+
+/* ---------- stats strip ---------- */
+.stats-section {
+    margin: 25px 0;
+    padding: 20px;
+    background-color: #111;
+    border: 1px solid #333;
+    border-radius: 15px;
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+/* ---------- model download progress ---------- */
+.progress-wrap {
+    margin: -10px 0 20px;
+    text-align: center;
+}
+
+.progress-bar {
+    height: 8px;
+    background-color: #111;
+    border: 1px solid #333;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: #A5C9FF;
+    transition: width 0.3s ease;
+}
+
+.panel-note {
+    font-size: 0.85rem;
+    opacity: 0.65;
+    margin: 4px 0 10px;
+    white-space: normal;
+}
+
+/* ---------- transcript box ---------- */
+.transcript-box {
+    height: 420px;
+    overflow-y: auto;
+    padding: 16px 20px;
+    background-color: #111;
+    border: 1px solid #333;
+    border-radius: 15px;
+    font-family: 'Consolas', monospace;
+    font-size: 0.95rem;
+    color: #e5e5e5;
+    text-align: left;
+    user-select: text;
+}
+
+.transcript-empty {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #777;
+}
+
+.line {
+    margin: 0 0 8px;
+    line-height: 1.45;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.ts {
+    opacity: 0.7;
+    margin-right: 6px;
+}
+
+.src {
+    display: inline-block;
+    min-width: 34px;
+    padding: 0 8px;
+    margin-right: 6px;
+    border: 1px solid #333;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.src-pc {
+    color: #A5C9FF;
+    border-color: #A5C9FF;
+}
+
+.src-mic {
+    color: #ffd27a;
+    border-color: #ffd27a;
+}
+
+.lang {
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 0.8rem;
+    opacity: 0.6;
+    text-transform: uppercase;
+}
+
+/* ---------- settings panels ---------- */
+.settings-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+.panel {
+    padding: 20px;
+    background-color: #111;
+    border: 1px solid #333;
+    border-radius: 15px;
+}
+
+.setting-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin: 10px 0;
+}
+
+.setting-label {
+    display: inline-block;
+    flex: 0 0 170px;
+    text-align: left;
+    white-space: normal;
+}
+
+.setting-control {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+}
+
+input[type="checkbox"] {
+    margin: 0 5px;
+    accent-color: #A5C9FF;
+}
+
+.radio-label {
+    color: #e5e5e5;
+    margin-left: 5px;
+    cursor: pointer;
+    font-family: 'Consolas', monospace;
+}
+
+.mtg-select {
+    background-color: black;
+    color: #e5e5e5;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 6px 10px;
+    font-family: 'Consolas', monospace;
+    font-size: 0.95rem;
+    max-width: 100%;
+    transition: border-color 0.3s ease;
+}
+
+    .mtg-select:focus {
+        outline: none;
+        border-color: #A5C9FF;
+    }
+
+    .mtg-select:disabled {
+        opacity: 0.4;
+    }
+
+/* ---------- export / status ---------- */
+.export-section {
+    text-align: center;
+    margin: 20px 0 10px;
+}
+
+.status-text {
+    margin: 12px 0;
+    min-height: 1.4em;
+    text-align: center;
+    white-space: normal;
+}
+
+.status-error {
+    color: #ff8a8a;
+}
+
+/* ---------- mobile ---------- */
+@media (max-width: 768px) {
+    .setting-group {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+        gap: 6px;
+    }
+
+    .setting-label {
+        flex: 0 0 auto;
+        text-align: center;
+    }
+
+    .setting-control {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .stats-section {
+        flex-direction: column;
+    }
+
+    .transcript-box {
+        height: 320px;
+    }
+
+    .card-button {
+        margin: 5px;
+        min-width: 120px;
+    }
+}

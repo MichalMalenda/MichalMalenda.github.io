@@ -1,0 +1,514 @@
+@page "/transcriber"
+@using System.Globalization
+@using System.Text
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+<BackButton />
+
+<h1 style="cursor: pointer;font-family:Consolas;" @onclick="ToggleDescription">Live Transcriber</h1>
+
+<div class="left_display">
+    @if (showDescription)
+    {
+        <div class="sticky_left">
+            <p>Transcribes what your PC is playing and what you say into the microphone, as two separate tracks, with the language of every sentence detected automatically. Everything runs in your browser (Whisper model), nothing is uploaded.</p>
+            <p><strong>How to use:</strong></p>
+            <ul>
+                <li>Pick the sources you want: PC audio, microphone, or both.</li>
+                <li>Click "Start transcribing". For PC audio the browser asks what to share: choose a tab or the whole screen and tick "Share audio".</li>
+                <li>The first start downloads the model (cached afterwards). Anything spoken in the meantime is queued and transcribed once it is ready.</li>
+                <li>Each line shows the clock time the sentence started, the source and the detected language. Click "Download transcript" for a .txt file.</li>
+            </ul>
+            <p><strong>Tips:</strong> Use Chrome or Edge (Firefox cannot capture PC audio). Wear headphones if you can: otherwise your speakers leak into the microphone and the same line appears on both tracks. "Tiny" is fastest but weak on non-English speech, "Base" is a good default, "Small" is the most accurate but needs a fast PC.</p>
+        </div>
+    }
+
+    <div class="tx-page">
+
+        <div class="export-section">
+            <button class="card-button card-button-wide" @onclick="Start" disabled="@(running)">Start transcribing</button>
+            <button class="card-button card-button-wide" @onclick="Stop" disabled="@(!running)">Stop</button>
+        </div>
+
+        <div class="stats-section">
+            <div class="stat-item">
+                <div class="session-label">PC audio</div>
+                <div class="stat-value">@StateText(pcState)</div>
+            </div>
+            <div class="stat-item">
+                <div class="session-label">Microphone</div>
+                <div class="stat-value">@StateText(micState)</div>
+            </div>
+            <div class="stat-item">
+                <div class="session-label">Model</div>
+                <div class="stat-value">@(loadingModel ? "Loading..." : modelReady ? "Ready" : "Not loaded")</div>
+            </div>
+            <div class="stat-item">
+                <div class="session-label">Waiting</div>
+                <div class="stat-value">@queueCount</div>
+            </div>
+        </div>
+
+        @if (loadingModel)
+        {
+            <div class="progress-wrap">
+                <div class="progress-bar"><div class="progress-fill" style="width:@progress.ToString("0", CultureInfo.InvariantCulture)%"></div></div>
+                <div class="panel-note color-text">@progressLabel</div>
+            </div>
+        }
+
+        <div id="tx-box" class="transcript-box">
+            @if (lines.Count == 0)
+            {
+                <div class="transcript-empty">The transcript will appear here.</div>
+            }
+            else
+            {
+                @foreach (var l in lines)
+                {
+                    <div class="line">
+                        <span class="ts color-text">[@Clock(l.StartMs)]</span>
+                        <span class="src @(l.Source == "PC" ? "src-pc" : "src-mic")">@l.Source</span>
+                        @if (!string.IsNullOrEmpty(l.Lang))
+                        {
+                            <span class="lang">@l.Lang</span>
+                        }
+                        <span class="line-text">@l.Text</span>
+                    </div>
+                }
+            }
+        </div>
+
+        <div class="status-text color-text @(statusIsError ? "status-error" : "")">@status</div>
+
+        <div class="export-section">
+            <button class="card-button card-button-wide" @onclick="Download" disabled="@(lines.Count == 0)">Download transcript</button>
+            <button class="card-button" @onclick="Clear" disabled="@(lines.Count == 0)">Clear</button>
+        </div>
+
+        <div class="settings-grid">
+            <div class="panel panel-wide">
+                <div class="setting-group">
+                    <span class="color-text setting-label">Sources</span>
+                    <div class="setting-control">
+                        <label class="radio-label"><input type="checkbox" checked="@usePc" disabled="@running" @onchange="@(e => usePc = e.Value is bool b && b)" />PC audio</label>
+                        <label class="radio-label"><input type="checkbox" checked="@useMic" disabled="@running" @onchange="@(e => useMic = e.Value is bool b && b)" />Microphone</label>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <span class="color-text setting-label">Model</span>
+                    <div class="setting-control">
+                        <select class="mtg-select" disabled="@running" @onchange="ModelChanged">
+                            <option value="Xenova/whisper-tiny" selected="@(model == "Xenova/whisper-tiny")">Tiny (fast, ~40 MB)</option>
+                            <option value="Xenova/whisper-base" selected="@(model == "Xenova/whisper-base")">Base (balanced, ~80 MB)</option>
+                            <option value="Xenova/whisper-small" selected="@(model == "Xenova/whisper-small")">Small (accurate, ~250 MB)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <span class="color-text setting-label">Auto-scroll</span>
+                    <div class="setting-control">
+                        <input type="checkbox" checked="@autoScroll" @onchange="@(e => autoScroll = e.Value is bool b && b)" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private record Line(double StartMs, string Source, string Lang, string Text);
+
+    private readonly List<Line> lines = new();
+    private DotNetObjectReference<TranscriptTool>? self;
+    private bool jsReady, running, loadingModel, modelReady, showDescription = true;
+    private bool usePc = true, useMic = true, autoScroll = true, scrollPending, statusIsError;
+    private string model = "Xenova/whisper-base";
+    private string pcState = "off", micState = "off";
+    private string status = "", progressLabel = "";
+    private double progress;
+    private int queueCount;
+    private DateTime sessionStart = DateTime.Now;
+
+    private void ToggleDescription() => showDescription = !showDescription;
+
+    private void SetStatus(string msg, bool error = false) { status = msg; statusIsError = error; }
+
+    private static string StateText(string s) => s switch { "speaking" => "Hearing speech", "listening" => "Listening", _ => "Off" };
+
+    private static string Clock(double ms) => DateTimeOffset.FromUnixTimeMilliseconds((long)ms).ToLocalTime().ToString("HH:mm:ss");
+
+    private void ModelChanged(ChangeEventArgs e)
+    {
+        model = e.Value?.ToString() ?? model;
+        modelReady = false;
+    }
+
+    // =====================================================================================
+    // Start / stop
+    // =====================================================================================
+    private async Task Start()
+    {
+        if (!usePc && !useMic) { SetStatus("Pick at least one source.", true); return; }
+        SetStatus("");
+        try
+        {
+            await EnsureJs();
+            self ??= DotNetObjectReference.Create(this);
+            sessionStart = DateTime.Now;
+            running = true;
+            // must run straight from the click: the browser only shows the share picker for a user gesture
+            await JS.InvokeVoidAsync("tx.start", self, usePc, useMic, model);
+            SetStatus("Listening...");
+        }
+        catch (Exception ex)
+        {
+            await StopCore();
+            SetStatus(ex.Message.Contains("Permission denied") || ex.Message.Contains("NotAllowed")
+                ? "Permission was denied or the share dialog was cancelled."
+                : $"Could not start: {ex.Message}", true);
+        }
+    }
+
+    private async Task Stop()
+    {
+        await StopCore();
+        SetStatus(queueCount > 0 ? "Stopped. Finishing the queued audio..." : "Stopped.");
+    }
+
+    private async Task StopCore()
+    {
+        running = false;
+        if (jsReady)
+        {
+            try { await JS.InvokeVoidAsync("tx.stop"); } catch { }
+        }
+        pcState = micState = "off";
+    }
+
+    private void Clear() { lines.Clear(); }
+
+    private async Task Download()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Transcript " + sessionStart.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
+        sb.AppendLine("Model: " + model);
+        sb.AppendLine();
+        foreach (var l in lines)
+            sb.AppendLine($"[{Clock(l.StartMs)}] {l.Source}{(string.IsNullOrEmpty(l.Lang) ? "" : " (" + l.Lang + ")")}: {l.Text}");
+        await EnsureJs();
+        await JS.InvokeVoidAsync("tx.download", "transcript-" + sessionStart.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".txt", sb.ToString());
+    }
+
+    // =====================================================================================
+    // Callbacks from JS
+    // =====================================================================================
+    [JSInvokable]
+    public void OnSegment(string source, double startMs, string lang, string text)
+    {
+        var i = lines.FindLastIndex(x => x.StartMs <= startMs);   // keep the box in time order
+        lines.Insert(i + 1, new Line(startMs, source, lang, text));
+        scrollPending = true;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnState(string source, string state)
+    {
+        if (source == "PC") pcState = state; else micState = state;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnQueue(int n) { queueCount = n; StateHasChanged(); }
+
+    [JSInvokable]
+    public void OnProgress(double pct, string label, bool done)
+    {
+        progress = pct;
+        progressLabel = label;
+        loadingModel = !done;
+        if (done) modelReady = true;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnError(string msg) { SetStatus(msg, true); loadingModel = false; StateHasChanged(); }
+
+    [JSInvokable]
+    public void OnStopped()
+    {
+        running = false;
+        pcState = micState = "off";
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (scrollPending && autoScroll && jsReady)
+        {
+            scrollPending = false;
+            await JS.InvokeVoidAsync("tx.scrollEnd", "tx-box");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (jsReady) { try { await JS.InvokeVoidAsync("tx.stop"); } catch { } }
+        self?.Dispose();
+    }
+
+    // =====================================================================================
+    // JS side: capture, silence-based segmenting, Whisper (transformers.js)
+    // =====================================================================================
+    private async Task EnsureJs()
+    {
+        if (jsReady) return;
+        await JS.InvokeVoidAsync("eval", JsSource);
+        jsReady = true;
+    }
+
+    private const string JsSource = @"
+(function () {
+    if (window.tx) return;
+    let dn = null, ctx = null;
+    let tf = null, proc = null, tok = null, model = null, modelId = '', loading = null;
+    const sources = {};
+    const queue = [];
+    let working = false;
+    const send = (m, ...a) => { if (dn) dn.invokeMethodAsync(m, ...a).catch(() => {}); };
+
+    const WORKLET = `
+        class Cap extends AudioWorkletProcessor {
+            constructor() { super(); this.b = new Float32Array(1600); this.n = 0; }
+            process(inputs) {
+                const ch = inputs[0] && inputs[0][0];
+                if (!ch) return true;
+                for (let i = 0; i < ch.length; i++) {
+                    this.b[this.n++] = ch[i];
+                    if (this.n === 1600) { this.port.postMessage(this.b.slice()); this.n = 0; }
+                }
+                return true;
+            }
+        }
+        registerProcessor('cap', Cap);`;
+
+    // ---- queue + transcription -------------------------------------------------------
+    function emit(name, startMs, frames) {
+        let n = 0; for (const f of frames) n += f.length;
+        const audio = new Float32Array(n);
+        let o = 0; for (const f of frames) { audio.set(f, o); o += f.length; }
+        queue.push({ name, startMs, audio });
+        while (queue.length > 40) queue.shift();
+        send('OnQueue', queue.length);
+        pump();
+    }
+
+    async function pump() {
+        if (working) return;
+        working = true;
+        try {
+            while (queue.length) {
+                if (!model) {
+                    if (loading) { try { await loading; } catch (e) { } }
+                    if (!model) { queue.length = 0; send('OnQueue', 0); break; }
+                }
+                const it = queue.shift();
+                send('OnQueue', queue.length);
+                try {
+                    const r = await transcribe(it.audio, it.name);
+                    if (r) send('OnSegment', it.name, it.startMs, r.lang, r.text);
+                } catch (e) { send('OnError', 'Transcription failed: ' + (e && e.message || e)); }
+            }
+        } finally { working = false; }
+    }
+
+    const LANGS = 'en zh de es ru ko fr ja pt tr pl ca nl ar sv it id hi fi vi he uk el ms cs ro da hu ta no th ur hr bg lt la mi ml cy sk te fa lv bn sr az sl kn et mk br eu is hy ne mn bs kk sq sw gl mr pa si km sn yo so af oc ka be tg sd gu am yi lo uz fo ht ps tk nn mt sa lb my bo tl mg as tt haw ln ha ba jw su yue'.split(' ');
+    let langIds = null, sotId = 0, detectWarned = false;
+    const lastLang = {};
+
+    // token string -> id, without relying on one particular tokenizer API
+    function tid(t) {
+        try {
+            const m = tok.model && tok.model.tokens_to_ids;
+            if (m && typeof m.get === 'function') { const v = m.get(t); if (v !== undefined && v !== null) return Number(v); }
+        } catch (e) { }
+        try {
+            const ids = tok.encode(t, { add_special_tokens: false });
+            if (ids && ids.length === 1) return Number(ids[0]);
+        } catch (e) { }
+        return null;
+    }
+
+    function prepLangs() {
+        if (langIds) return;
+        sotId = tid('<|startoftranscript|>');
+        if (sotId === null) throw new Error('startoftranscript token not found');
+        langIds = [];
+        for (const l of LANGS) { const id = tid('<|' + l + '|>'); if (id !== null) langIds.push([l, id]); }
+        if (langIds.length < 10) { langIds = null; throw new Error('language tokens not found in this tokenizer'); }
+    }
+
+    // one decoder step with only <|startoftranscript|>: the logits over the language tokens say which language is spoken
+    async function detectLang(inputs) {
+        prepLangs();
+        const dec = new tf.Tensor('int64', new BigInt64Array([BigInt(sotId)]), [1, 1]);
+        const o = await model.forward({ input_features: inputs.input_features, decoder_input_ids: dec });
+        const d = o.logits.data;
+        let mx = -Infinity;
+        for (const [, id] of langIds) if (d[id] > mx) mx = d[id];
+        let sum = 0, best = '', bp = 0;
+        for (const [l, id] of langIds) sum += Math.exp(d[id] - mx);
+        for (const [l, id] of langIds) { const p = Math.exp(d[id] - mx) / sum; if (p > bp) { bp = p; best = l; } }
+        return { lang: best, p: bp };
+    }
+
+    async function transcribe(audio, name) {
+        const inputs = await proc(audio);
+        let lang = '';
+        try {
+            const r = await detectLang(inputs);
+            lang = r.lang;
+            if (r.p < 0.4 && lastLang[name]) lang = lastLang[name];     // unsure: stay with what this source spoke before
+            else if (r.p >= 0.4) lastLang[name] = lang;
+        } catch (e) {
+            if (!detectWarned) { detectWarned = true; send('OnError', 'Language detection failed: ' + (e && e.message || e)); }
+        }
+        const opts = { ...inputs, max_new_tokens: 200, task: 'transcribe' };
+        if (lang) opts.language = lang;                                  // forces transcription in that language, no translation
+        const out = await model.generate(opts);
+        const seq = out.sequences || out;
+        const ids = Array.from(seq.data, Number);
+        const text = tok.decode(ids, { skip_special_tokens: true }).trim();
+        if (!text || /^[\[\(].*[\]\)]$/.test(text)) return null;      // empty, or just [MUSIC] / (silence) tags
+        return { lang, text };
+    }
+
+    async function ensureModel(id) {
+        if (model && modelId === id) { send('OnProgress', 100, 'Model ready', true); return; }
+        model = null; proc = null; tok = null; langIds = null;
+        const files = {};
+        const cb = (p) => {
+            if (p.status === 'progress' && p.file) {
+                files[p.file] = [p.loaded || 0, p.total || 0];
+                let l = 0, t = 0;
+                for (const k in files) { l += files[k][0]; t += files[k][1]; }
+                if (t > 0) send('OnProgress', Math.min(99, l / t * 100), 'Downloading model... ' + Math.round(l / 1048576) + ' / ' + Math.round(t / 1048576) + ' MB', false);
+            }
+        };
+        send('OnProgress', 0, 'Preparing...', false);
+        try {
+            tf = tf || await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3/+esm');
+            proc = await tf.AutoProcessor.from_pretrained(id, { progress_callback: cb });
+            tok = await tf.AutoTokenizer.from_pretrained(id, { progress_callback: cb });
+            model = await tf.WhisperForConditionalGeneration.from_pretrained(id, { dtype: 'q8', progress_callback: cb });
+            modelId = id;
+            send('OnProgress', 100, 'Model ready', true);
+        } catch (e) {
+            model = null;
+            send('OnError', 'Could not load the model: ' + (e && e.message || e));
+            throw e;
+        }
+    }
+
+    // ---- silence based segmenter (one per source, 100 ms frames at 16 kHz) ----------
+    function makeSegmenter(name) {
+        let pre = [], buf = [], speaking = false, silent = 0, voiced = 0, floor = 0.003, startMs = 0;
+        function end(stillLoud) {
+            if (voiced >= 3) emit(name, startMs, buf);
+            buf = []; voiced = 0; silent = 0;
+            if (stillLoud) { startMs = Date.now(); }
+            else { speaking = false; send('OnState', name, 'listening'); }
+        }
+        const seg = (f) => {
+            let s = 0; for (let i = 0; i < f.length; i++) s += f[i] * f[i];
+            const rms = Math.sqrt(s / f.length);
+            const loud = rms > Math.max(0.01, floor * 3);
+            if (!speaking) {
+                floor = floor * 0.95 + Math.min(rms, 0.05) * 0.05;
+                pre.push(f); if (pre.length > 3) pre.shift();
+                if (loud) {
+                    speaking = true; buf = pre.slice(); pre = []; voiced = 1; silent = 0;
+                    startMs = Date.now() - buf.length * 100;
+                    send('OnState', name, 'speaking');
+                }
+                return;
+            }
+            buf.push(f);
+            if (loud) { voiced++; silent = 0; } else silent++;
+            if (silent >= 8) end(false);
+            else if (buf.length >= 250) end(true);
+        };
+        seg.flush = () => { if (speaking) end(false); };
+        return seg;
+    }
+
+    async function addSource(name, stream) {
+        const track = stream.getAudioTracks()[0];
+        const src = ctx.createMediaStreamSource(new MediaStream([track]));
+        const node = new AudioWorkletNode(ctx, 'cap');
+        const mute = ctx.createGain(); mute.gain.value = 0;
+        const seg = makeSegmenter(name);
+        node.port.onmessage = (e) => seg(e.data);
+        src.connect(node); node.connect(mute); mute.connect(ctx.destination);
+        sources[name] = { stream, src, node, mute, seg };
+        track.addEventListener('ended', () => closeSource(name));
+        send('OnState', name, 'listening');
+    }
+
+    function closeSource(name) {
+        const s = sources[name];
+        if (!s) return;
+        delete sources[name];
+        try { s.seg.flush(); } catch (e) { }
+        try { s.stream.getTracks().forEach(t => t.stop()); } catch (e) { }
+        try { s.src.disconnect(); s.node.disconnect(); s.mute.disconnect(); } catch (e) { }
+        send('OnState', name, 'off');
+        if (Object.keys(sources).length === 0) send('OnStopped');
+    }
+
+    window.tx = {
+        async start(dnRef, wantPc, wantMic, modelName) {
+            dn = dnRef;
+            const streams = {};
+            // the share picker needs the click gesture, so ask for it before anything else
+            if (wantPc) {
+                const ds = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true, systemAudio: 'include' });
+                if (ds.getAudioTracks().length === 0) {
+                    ds.getTracks().forEach(t => t.stop());
+                    throw new Error('No audio was shared. In the picker choose a tab or the entire screen and tick Share audio.');
+                }
+                streams.PC = ds;
+            }
+            if (wantMic) {
+                try {
+                    streams.Mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+                } catch (e) {
+                    if (streams.PC) streams.PC.getTracks().forEach(t => t.stop());
+                    throw e;
+                }
+            }
+            ctx = new AudioContext({ sampleRate: 16000 });
+            await ctx.resume();
+            await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET], { type: 'text/javascript' })));
+            for (const name of Object.keys(streams)) await addSource(name, streams[name]);
+            ensureModel(modelName).catch(() => {});
+        },
+        stop() {
+            for (const k of Object.keys(sources)) closeSource(k);
+            if (ctx) { ctx.close().catch(() => {}); ctx = null; }
+        },
+        scrollEnd(id) {
+            const e = document.getElementById(id);
+            if (e) e.scrollTop = e.scrollHeight;
+        },
+        download(name, text) {
+            const url = URL.createObjectURL(new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' }));
+            const a = document.createElement('a'); a.href = url; a.download = name;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        }
+    };
+})();
+";
+}
